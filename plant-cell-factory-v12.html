@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>식물 세포 공장 타이쿤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root { --sky:#d9f4ff; --grass:#eefbe7; --leaf:#7ed957; --leaf-dark:#3f9e3a; --sun:#ffd93d; --sun-dark:#f2b705; --sugar:#ff8fab; --atp:#ffb347; --ink:#36503a; --real:#2f7fd1; --game:#e9822b; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; padding:20px 14px 40px; font-family:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif; color:var(--ink); background:linear-gradient(var(--sky),var(--grass) 55%); }
+  main { max-width:860px; margin:0 auto; text-align:center; }
+  h1 { margin:8px 0 14px; font-size:2rem; font-weight:400; }
+  h2, h3 { margin:0; font-weight:400; }
+  p { margin:0; }
+  .stats { display:flex; gap:12px; justify-content:center; margin-bottom:18px; }
+  .pill { flex:1; max-width:220px; padding:8px 16px; background:#fff; border:4px solid; border-radius:999px; font-size:1.1rem; }
+  .pill b { display:block; font-size:2rem; font-weight:400; line-height:1.15; }
+  .pill.sugar { border-color:var(--sugar); } .pill.atp { border-color:var(--atp); }
+  .btn-light { font:inherit; font-size:1.6rem; padding:14px 40px; border:none; border-radius:999px; background:var(--sun); color:#7a5a00; box-shadow:0 6px 0 var(--sun-dark); cursor:pointer; touch-action:manipulation; user-select:none; }
+  .btn-light:active { transform:translateY(4px); box-shadow:0 2px 0 var(--sun-dark); }
+
+  .cell { margin:22px 0 16px; padding:14px; background:#f6fff0; border:8px solid var(--leaf); border-radius:40px; }
+  .group-title { margin:6px 0 10px; font-size:1.15rem; }
+  .group-title small { display:block; font-size:.85rem; opacity:.7; }
+  .grid { display:grid; gap:12px; margin-bottom:12px; }
+  .g2 { grid-template-columns:1fr 1fr; } .g4 { grid-template-columns:repeat(4,1fr); }
+  @media (max-width:720px) { .g4 { grid-template-columns:1fr 1fr; } }
+  @media (max-width:480px) { .g2 { grid-template-columns:1fr; } }
+  .card { position:relative; background:#fff; border:4px solid var(--c); border-radius:24px; padding:10px 8px 12px; }
+  .draw { display:block; width:100%; padding:0; border:none; background:none; cursor:pointer; border-radius:16px; }
+  .draw svg { width:100%; max-width:150px; height:auto; transition:transform .15s; }
+  .draw:hover svg { transform:scale(1.06); }
+  .hint { font-size:.8rem; opacity:.6; }
+  .lv { font-size:.9rem; opacity:.75; }
+  .eff { margin:6px 0 10px; font-size:.98rem; min-height:2.6em; }
+  .btn-up { font:inherit; width:100%; padding:8px 6px; border:none; border-radius:16px; background:var(--leaf); color:#1f4a1f; box-shadow:0 4px 0 var(--leaf-dark); font-size:1.05rem; line-height:1.3; cursor:pointer; touch-action:manipulation; }
+  .btn-up small { font-size:.88rem; }
+  .btn-up:active:not(:disabled) { transform:translateY(3px); box-shadow:0 1px 0 var(--leaf-dark); }
+  .btn-up:disabled { background:#e3e8e0; color:#8a968a; box-shadow:0 4px 0 #c8d0c5; cursor:not-allowed; }
+  button:focus-visible { outline:4px solid #5bb8ff; outline-offset:3px; }
+  .line-status { margin-top:4px; padding:8px 12px; background:#fff; border:3px dashed var(--leaf); border-radius:18px; font-size:.95rem; line-height:1.5; }
+
+  .pop { position:absolute; left:50%; top:30%; white-space:nowrap; pointer-events:none; font-size:1.2rem; animation:floatUp .9s ease-out forwards; }
+  @keyframes floatUp { from { opacity:1; transform:translate(-50%,0); } to { opacity:0; transform:translate(-50%,-50px); } }
+  @media (prefers-reduced-motion:reduce) { .pop { animation-duration:.01s; } .draw svg { transition:none; } }
+  .note { padding:12px 16px; background:#fff; border:3px dashed var(--leaf); border-radius:20px; font-size:.95rem; line-height:1.6; text-align:left; }
+
+  /* 정보 창 */
+  dialog { width:min(560px,92vw); max-height:88vh; padding:18px; border:6px solid var(--c,var(--leaf)); border-radius:28px; color:var(--ink); font-family:inherit; text-align:left; overflow:auto; }
+  dialog::backdrop { background:rgba(40,70,50,.45); }
+  .d-head { display:flex; align-items:center; gap:14px; margin-bottom:10px; }
+  .d-head svg { width:120px; flex:none; height:auto; }
+  .d-head h2 { font-size:1.7rem; }
+  .d-head p { font-size:.95rem; opacity:.75; }
+  .sec { margin:8px 0; padding:10px 12px; border-radius:16px; background:#f4faf0; font-size:.98rem; line-height:1.6; }
+  .sec b { display:block; margin-bottom:2px; }
+  .sec.real { background:#e8f2ff; } .sec.real b { color:var(--real); }
+  .sec.game { background:#fff0e0; } .sec.game b { color:var(--game); }
+  .btn-close { display:block; margin:12px auto 0; font:inherit; padding:8px 28px; border:none; border-radius:999px; background:var(--leaf); color:#1f4a1f; font-size:1.05rem; cursor:pointer; }
+  .pill small { display:block; font-size:.72rem; opacity:.7; }
+  .sub { margin:-6px 0 8px; font-size:.8rem; opacity:.7; line-height:1.35; }
+  .zoom { display:block; width:100%; height:auto; margin:4px 0; }
+  .zoom .reg { cursor:pointer; transition:opacity .2s; }
+  .zoom.has-sel .reg:not(.on) { opacity:.3; }
+  .zoom .reg.on { filter:drop-shadow(0 0 7px #ffd93d); }
+  .zoom .anim { pointer-events:none; }
+  .zoom text { font-family:inherit; }
+  .chips { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:6px 0; }
+  .chip { font:inherit; padding:6px 16px; border:3px solid var(--c); border-radius:999px; background:#fff; color:var(--ink); font-size:1rem; cursor:pointer; }
+  .chip.on { background:var(--c); }
+  .io { display:block; margin:2px 0 4px; font-size:.88rem; opacity:.8; }
+  .atp-note { margin:8px 0; padding:8px 12px; border:3px dashed #3f9e3a; border-radius:14px; background:#f1ffe6; font-size:.92rem; line-height:1.5; }
+  .atp-note.cell-atp { border-color:var(--atp); background:#fff6e0; }
+  details summary { margin:8px 0; cursor:pointer; font-size:1.02rem; }
+
+  /* ===== 협력 지도 + 미션 ===== */
+  .coop { text-align:left; }
+  .coop .group-title { text-align:center; }
+  .flow-line { margin:0 0 10px; padding:8px 12px; background:#fff; border:3px dashed var(--atp); border-radius:18px; font-size:.95rem; line-height:1.55; text-align:center; }
+  .coop-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+  @media (max-width:720px) { .coop-grid { grid-template-columns:1fr; } }
+  @media (min-width:721px) { .mission-panel { position:sticky; top:10px; } }
+  .panel { background:#fff; border:4px solid var(--leaf); border-radius:24px; padding:12px; }
+  .panel h4 { margin:0 0 6px; font-size:1.2rem; font-weight:400; }
+  .goal { padding:8px 12px; border-radius:14px; background:#fff8d6; border:3px solid var(--sun); font-size:.95rem; line-height:1.5; }
+  .goal b { font-weight:400; color:#7a5a00; }
+  .steps { list-style:none; margin:10px 0 0; padding:0; display:grid; gap:6px; }
+  .st { display:grid; grid-template-columns:2em 1fr; align-items:center; padding:6px 10px; border:3px solid #dfe8da; border-radius:14px; background:#fafdf7; font-size:.95rem; line-height:1.3; }
+  .st small { grid-column:2; font-size:.8rem; opacity:.7; }
+  .st.done { background:#e6f8d8; border-color:var(--leaf); }
+  .st.now { background:#fff3c4; border-color:var(--sun-dark); }
+  .st.wait { background:#ffe9e7; border-color:#e5645a; }
+  .now-box { margin:10px 0 6px; padding:8px 12px; border-radius:14px; background:#eef6ff; border:3px solid #bcd9f7; font-size:.92rem; line-height:1.55; min-height:5.2em; }
+  .bar { height:14px; margin:6px 0 10px; background:#e3e8e0; border-radius:999px; overflow:hidden; }
+  .bar i { display:block; height:100%; width:0; background:var(--leaf); border-radius:999px; }
+  .needs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  @media (max-width:480px) { .needs { grid-template-columns:1fr; } }
+  .need { padding:6px 8px; border:3px solid #dfe8da; border-radius:14px; font-size:.85rem; line-height:1.4; text-align:center; }
+  .need b { display:block; font-weight:400; font-size:.8rem; opacity:.7; }
+  .need.ok { border-color:var(--leaf); background:#f1ffe6; }
+  .need.no { border-color:#e5645a; background:#ffe9e7; }
+  .need.na { opacity:.55; }
+  .lack { margin:10px 0 0; padding:8px 12px; border-radius:14px; font-size:.92rem; line-height:1.55; min-height:3.2em; }
+  .lack.bad { background:#ffe9e7; border:3px solid #e5645a; }
+  .lack.good { background:#f1ffe6; border:3px solid var(--leaf); }
+  .lack ul { margin:4px 0 0; padding-left:1.2em; }
+  .btn-go { font:inherit; width:100%; margin-top:10px; padding:12px 8px; border:none; border-radius:18px; background:var(--sun); color:#7a5a00; box-shadow:0 5px 0 var(--sun-dark); font-size:1.2rem; cursor:pointer; touch-action:manipulation; }
+  .btn-go:active:not(:disabled) { transform:translateY(3px); box-shadow:0 2px 0 var(--sun-dark); }
+  .btn-go:disabled { background:#e3e8e0; color:#7d897d; box-shadow:0 5px 0 #c8d0c5; cursor:default; }
+  .toast { margin-top:8px; min-height:1.6em; font-size:.95rem; color:#b45f06; text-align:center; }
+  .map-wrap { background:#fff; border:4px solid var(--atp); border-radius:24px; padding:8px; }
+  svg.map { display:block; width:100%; max-width:440px; height:auto; margin:0 auto; }
+  .map text { font-family:inherit; fill:var(--ink); }
+  .map .node { transition:opacity .2s; }
+  .map .node[data-open] { cursor:pointer; }
+  .map .node:focus-visible { outline:3px solid #5bb8ff; outline-offset:2px; }
+  .map .node.locked { opacity:.42; }
+  .map .node.active rect { stroke:#f2b705; stroke-width:7; filter:drop-shadow(0 0 6px #ffd93d); }
+  .map .node.lack rect { stroke:#e5392d; stroke-dasharray:7 4; stroke-width:5; }
+  .map .flow { stroke-dasharray:7 6; animation:dashmove 1s linear infinite; }
+  @keyframes dashmove { to { stroke-dashoffset:-13; } }
+  @media (prefers-reduced-motion:reduce) { .map .flow { animation:none; } }
+  .coop-info { margin-top:12px; }
+  .coop-info .sec ul { margin:4px 0 0; padding-left:1.2em; }
+  .coop-info .sec li { margin:3px 0; }
+
+  /* ===== 학습 안내 (시작 화면) ===== */
+  .btn-guide { font:inherit; margin:0 0 14px; padding:7px 20px; border:3px solid var(--leaf); border-radius:999px; background:#fff; color:var(--ink); font-size:1rem; cursor:pointer; touch-action:manipulation; }
+  .btn-guide:hover { background:#f1ffe6; }
+  dialog.intro { width:min(680px,94vw); max-height:92vh; padding:0; --c:var(--leaf); }
+  .intro-body { padding:18px 18px 4px; }
+  .intro h2 { font-size:1.7rem; }
+  .intro h2:focus { outline:none; }
+  .intro .lead { margin:4px 0 8px; font-size:.95rem; opacity:.8; line-height:1.5; }
+  .intro h3 { margin:16px 0 6px; font-size:1.2rem; }
+  .goals { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  .goals li { display:grid; grid-template-columns:2.2em 1fr; gap:2px 6px; padding:10px 12px; border:3px solid #cfe8c4; border-radius:16px; background:#f7fdf3; line-height:1.5; }
+  .goals .no { grid-row:span 2; display:flex; align-items:center; justify-content:center; width:1.9em; height:1.9em; border-radius:50%; background:var(--leaf); color:#1f4a1f; font-size:1.1rem; }
+  .goals .where { font-size:.92rem; color:#2a5f2a; }
+  .goals .where b { display:inline; margin:0; color:var(--real); }
+  .rules { margin:0; padding-left:1.4em; line-height:1.65; font-size:.98rem; }
+  .rules li { margin:3px 0; }
+  .intro .sec { margin:8px 0; }
+  .intro .sec.why { background:#f1ecff; } .intro .sec.why b { color:#6a4cc2; }
+  .intro .cmp { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  @media (max-width:560px) { .intro .cmp { grid-template-columns:1fr; } }
+  .intro .cmp .sec { margin:0; }
+  .intro .cmp ul { margin:4px 0 0; padding-left:1.2em; }
+  .intro .cmp li { margin:3px 0; }
+  .intro-foot { position:sticky; bottom:0; padding:10px 18px 14px; background:linear-gradient(rgba(255,255,255,0), #fff 28%); text-align:center; }
+  .btn-start { font:inherit; padding:12px 40px; border:none; border-radius:999px; background:var(--sun); color:#7a5a00; box-shadow:0 5px 0 var(--sun-dark); font-size:1.4rem; cursor:pointer; touch-action:manipulation; }
+  .btn-start:active { transform:translateY(3px); box-shadow:0 2px 0 var(--sun-dark); }
+  .intro-foot small { display:block; margin-top:6px; font-size:.8rem; opacity:.65; }
+
+  /* ===== 미션 보상 목록 ===== */
+  .rewards { margin:10px 0 0; border:3px solid #f3d27a; border-radius:14px; background:#fffdf2; }
+  .rewards summary { padding:7px 12px; cursor:pointer; font-size:.98rem; }
+  .rewards .rw-body { padding:0 10px 10px; }
+  .rw-list { list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+  .rw { display:grid; grid-template-columns:2em 1fr; align-items:center; padding:6px 10px; border:3px solid #eee3bd; border-radius:12px; background:#fff; font-size:.9rem; line-height:1.35; }
+  .rw small { grid-column:2; font-size:.8rem; opacity:.75; }
+  .rw.got { background:#e6f8d8; border-color:var(--leaf); }
+  .rw.now { background:#fff3c4; border-color:var(--sun-dark); }
+  .rw.lock { opacity:.65; }
+  .rw-sum { margin:8px 0 0; padding:7px 10px; border-radius:12px; background:#eef6ff; border:3px solid #bcd9f7; font-size:.88rem; line-height:1.5; }
+  .rw-sum b { font-weight:400; color:var(--real); }
+  .rw-note { margin:6px 0 0; font-size:.78rem; opacity:.65; line-height:1.4; }
+
+  /* ===== 확인 퀴즈 ===== */
+  .quiz { text-align:left; }
+  .quiz .group-title { text-align:center; }
+  .qz-box { background:#fff; border:4px solid var(--leaf); border-radius:24px; padding:14px; max-width:760px; margin:0 auto; }
+  .qz-lead { margin:0 0 10px; font-size:.88rem; opacity:.75; line-height:1.5; text-align:center; }
+  .qz-top { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; justify-content:space-between; font-size:.95rem; }
+  .qz-goal { padding:2px 10px; border-radius:999px; background:#eef6ff; border:2px solid #bcd9f7; font-size:.82rem; }
+  .qz-dots { display:flex; gap:4px; }
+  .qz-dots i { width:14px; height:14px; border-radius:50%; background:#e3e8e0; border:2px solid #cfd8cb; }
+  .qz-dots i.on { background:var(--leaf); border-color:#4c9a2a; }
+  .qz-dots i.cur { border-color:var(--sun-dark); background:#fff3c4; }
+  .qz-topic { margin:8px 0 2px; font-size:.82rem; opacity:.7; }
+  .qz-q { margin:2px 0 10px; font-size:1.15rem; font-weight:400; line-height:1.5; }
+  .qz-q:focus { outline:none; }
+  .qz-opts { display:grid; gap:8px; }
+  .qz-opt { font:inherit; display:grid; grid-template-columns:2em 1fr auto; gap:8px; align-items:start; width:100%; text-align:left; padding:10px 12px; min-height:48px; border:3px solid #dfe8da; border-radius:16px; background:#fafdf7; color:var(--ink); font-size:.95rem; line-height:1.5; cursor:pointer; touch-action:manipulation; }
+  .qz-opt:hover:not(:disabled) { background:#f1ffe6; border-color:var(--leaf); }
+  .qz-opt:focus-visible { outline:3px solid #5bb8ff; outline-offset:2px; }
+  .qz-opt:disabled { cursor:default; color:var(--ink); opacity:1; }
+  .qz-let { display:flex; align-items:center; justify-content:center; width:1.8em; height:1.8em; border-radius:50%; background:#e6f3dc; font-size:.95rem; }
+  .qz-mk { font-size:.8rem; white-space:nowrap; }
+  .qz-opt.right { background:#e6f8d8; border-color:var(--leaf); }
+  .qz-opt.right .qz-let { background:var(--leaf); }
+  .qz-opt.wrong { background:#ffe9e7; border-color:#e5645a; }
+  .qz-opt.wrong .qz-let { background:#ffc9c1; }
+  .qz-opt.dim { opacity:.55; }
+  .qz-fb, .qz-ex { margin-top:12px; padding:10px 12px; border-radius:16px; line-height:1.6; font-size:.93rem; }
+  .qz-fb:focus, .qz-ex:focus { outline:none; }
+  .qz-fb { background:#fff4f2; border:3px solid #e5645a; }
+  .qz-ex { background:#f7fdf3; border:3px solid var(--leaf); }
+  .qz-fb p, .qz-ex p { margin:4px 0; }
+  .qz-head { font-weight:400; font-size:1.05rem; }
+  .qz-sec { margin:8px 0; padding:8px 10px; border-radius:12px; background:#fff; border:2px solid #e3eedd; }
+  .qz-sec > b { display:block; font-weight:400; font-size:.88rem; color:var(--real); margin-bottom:2px; }
+  .qz-sec.game > b { color:var(--game); }
+  .qz-sec ul { margin:2px 0 0; padding-left:0; list-style:none; display:grid; gap:6px; }
+  .qz-sec li { font-size:.9rem; }
+  .qz-sec li i { display:block; margin-top:1px; font-style:normal; color:#8a2d25; }
+  .qz-wl { display:inline-flex; align-items:center; justify-content:center; width:1.5em; height:1.5em; border-radius:50%; background:#ffc9c1; font-size:.8rem; margin-right:4px; }
+  .qz-flow { list-style:none; margin:4px 0 0; padding:0; display:grid; gap:4px; counter-reset:f; }
+  .qz-flow li { display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:start; font-size:.88rem; line-height:1.5; }
+  .qz-flow li + li::before { content:'↓'; grid-column:1 / -1; padding-left:1.2em; opacity:.5; line-height:1; }
+  .qz-fo { padding:1px 10px; border-radius:999px; border:3px solid var(--c, #8fa38f); background:#fff; font-size:.82rem; white-space:nowrap; }
+  .qz-rev { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0; }
+  .qz-rev > span { font-size:.85rem; width:100%; }
+  .qz-btn { font:inherit; padding:8px 14px; min-height:40px; border:3px solid var(--leaf); border-radius:999px; background:#fff; color:var(--ink); font-size:.88rem; cursor:pointer; touch-action:manipulation; }
+  .qz-btn:hover { background:#f1ffe6; }
+  .qz-btn:focus-visible { outline:3px solid #5bb8ff; outline-offset:2px; }
+  .qz-btn.main { background:var(--sun); border-color:var(--sun-dark); color:#7a5a00; font-size:1rem; padding:10px 22px; }
+  .qz-btn.ghost { border-color:#cfd8cb; opacity:.9; }
+  .qz-acts { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .qz-res h4 { margin:0 0 6px; font-size:1.4rem; font-weight:400; }
+  .qz-res h4:focus { outline:none; }
+  .qz-score { font-size:1.05rem; }
+  .qz-res ul { list-style:none; margin:10px 0; padding:0; display:grid; gap:6px; }
+  .qz-res li { padding:8px 10px; border:3px solid #dfe8da; border-radius:14px; font-size:.9rem; line-height:1.5; }
+  .qz-res li.ok { background:#e6f8d8; border-color:var(--leaf); }
+  .qz-res li.re { background:#fff3c4; border-color:var(--sun-dark); }
+  .qz-res li.pk { background:#eef6ff; border-color:#bcd9f7; }
+  .qz-res li small { display:block; opacity:.75; }
+  .qz-bank { margin:0 0 10px; padding:8px 12px; border:3px solid #f3d27a; border-radius:16px; background:#fff9e0; font-size:.88rem; line-height:1.6; }
+  .qz-bank b { font-weight:400; }
+  .qz-rwline { margin:4px 0 0; padding:3px 10px; display:inline-block; border-radius:999px; background:#fff9e0; border:2px solid #f3d27a; font-size:.82rem; }
+  .qz-rwline.got { background:#e6f8d8; border-color:var(--leaf); }
+  .qz-sec.gain { background:#fff9e0; border-color:#f3d27a; }
+  .qz-sec.gain > b { color:#8a6400; }
+  .qz-perfect { margin:8px 0; padding:8px 12px; border-radius:14px; border:3px solid #f3d27a; background:#fff9e0; font-size:.9rem; line-height:1.5; }
+  .qz-perfect.got { background:#e6f8d8; border-color:var(--leaf); }
+
+  /* ===== 게임 목표 / 클리어 ===== */
+  .goalbox { max-width:560px; margin:0 auto 14px; padding:10px 14px; background:#fff; border:4px solid var(--sun-dark); border-radius:22px; text-align:left; }
+  .goal-head { display:flex; flex-wrap:wrap; gap:4px 10px; align-items:center; justify-content:space-between; font-size:1rem; line-height:1.4; }
+  .goal-badge { padding:2px 10px; border-radius:999px; background:#e6f8d8; border:2px solid var(--leaf); font-size:.85rem; white-space:nowrap; }
+  .goal-time { font-size:.95rem; white-space:nowrap; }
+  .gbar { height:18px; margin:8px 0 4px; background:#f1ecd4; border-radius:999px; overflow:hidden; border:2px solid #e3d9a8; }
+  .gbar i { display:block; height:100%; width:0; background:linear-gradient(90deg,#ffd45c,#ffb52e); border-radius:999px; transition:width .4s; }
+  .goalbox.done .gbar i { background:linear-gradient(90deg,#9be36a,#5fc03c); }
+  .goal-num { font-size:1.05rem; }
+  .goal-num b { font-weight:400; font-size:1.5rem; }
+  .goalbox small { display:block; margin-top:4px; font-size:.82rem; opacity:.75; line-height:1.5; }
+  @media (prefers-reduced-motion:reduce) { .gbar i { transition:none; } }
+  dialog.clear { width:min(560px,94vw); }
+  .clear h2:focus { outline:none; }
+  .clear-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
+  .clear-stats > div { padding:8px 10px; border:3px solid #cfe8c4; border-radius:14px; background:#f7fdf3; font-size:.9rem; line-height:1.4; }
+  .clear-stats b { display:block; font-size:1.35rem; font-weight:400; }
+  .clear-learn { margin:8px 0; padding:10px 12px; border:3px solid #bcd9f7; border-radius:16px; background:#eef6ff; font-size:.92rem; line-height:1.6; }
+  .clear-learn ul { margin:4px 0 0; padding-left:1.2em; }
+  .clear-acts { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:10px 18px 16px; }
+  .clear-acts button { font:inherit; padding:10px 18px; min-height:44px; border:3px solid var(--leaf); border-radius:999px; background:#fff; color:var(--ink); font-size:1rem; cursor:pointer; touch-action:manipulation; }
+  .clear-acts button:hover { background:#f1ffe6; }
+  .clear-acts button:focus-visible { outline:3px solid #5bb8ff; outline-offset:2px; }
+  .clear-acts button.main { background:var(--sun); border-color:var(--sun-dark); color:#7a5a00; font-size:1.1rem; }
+  @media (max-width:420px) { .clear-stats { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>🌱 식물 세포 공장 타이쿤</h1>
+  <button class="btn-guide" id="guideBtn" aria-haspopup="dialog">📖 학습 안내 다시 보기</button>
+  <button class="btn-guide" id="quizJump">📝 확인 퀴즈 풀러 가기</button>
+
+  <section class="goalbox" id="goalBox" aria-label="게임 목표">
+    <div class="goal-head"><span>🎯 <b>목표</b> · 마이토콘드리아가 만든 ATP 모으기</span><span class="goal-badge">난이도 ⭐ 쉬움</span></div>
+    <div class="gbar" id="goalBar" role="progressbar" aria-label="목표 진행" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="goalFill"></i></div>
+    <div class="goal-head"><span class="goal-num"><b id="goalNow">0</b> / <span id="goalMax">20,000</span> ⚡ (<span id="goalPct">0</span>%)</span><span class="goal-time" id="goalTime">⏱ 0:00</span></div>
+    <small id="goalHint">업그레이드에 쓴 ATP도 ‘만든 양’에 계속 쌓여요. 보통 5~10분 걸려요. (실제 세포는 ATP를 많이 쌓아 두지 않아요. 이 목표와 시간 재기는 게임용이에요.)</small>
+  </section>
+
+  <section class="stats">
+    <div class="pill sugar">🍬 당(유기물)<b id="sugar">0</b></div>
+    <div class="pill atp">⚡ 세포 ATP<b id="atp">0</b><small>마이토콘드리아가 만든 공용 ATP</small></div>
+  </section>
+
+  <button class="btn-light" id="lightBtn">☀️ 빛 받기</button>
+
+  <section class="cell">
+    <h3 class="group-title">⚡ 에너지 공장<small>그림을 누르면 소기관 설명이 나와요</small></h3>
+    <div class="grid g2" id="gridEnergy"></div>
+    <h3 class="group-title">🧬 단백질 생산 라인<small>분비 단백질이 만들어지는 길: 핵 → 라이보솜 → 거친면 소포체 → 골지체<br>(모든 단백질이 이 길을 다 거치는 건 아니에요. 아래 협력 지도에서 확인해요)</small></h3>
+    <div class="grid g4" id="gridLine"></div>
+    <p class="line-status" id="lineStatus"></p>
+  </section>
+
+  <section class="cell coop" id="coop">
+    <h3 class="group-title">🤝 소기관 협력 지도 &amp; 분비 단백질 미션<small>소기관 그림을 누르면 설명이 나와요</small></h3>
+    <p class="flow-line">☀️ 엽록체가 <b>당</b>을 만들고 → 마이토콘드리아가 세포 호흡으로 <b>⚡ ATP</b>를 만들고 → ATP가 <b>단백질 합성·운반</b> 같은 세포 활동에 쓰여요.</p>
+    <div class="coop-grid">
+      <div class="panel mission-panel" id="missionPanel">
+        <h4>🧪 분비 단백질 만들기</h4>
+        <div class="goal" id="goal"></div>
+        <details class="rewards" id="rewardsBox" open>
+          <summary id="rwSummary">🎁 미션 보상 목록</summary>
+          <div class="rw-body">
+            <ul class="rw-list" id="rwList"></ul>
+            <p class="rw-sum" id="rwSum" aria-live="polite"></p>
+            <p class="rw-note">보상은 게임용 장치예요. 실제 세포가 단백질을 분비했다고 보상을 받는 건 아니에요.</p>
+          </div>
+        </details>
+        <ol class="steps" id="steps"></ol>
+        <div class="now-box" id="nowBox" aria-live="polite"></div>
+        <div class="bar" role="progressbar" aria-label="현재 단계 진행" aria-valuemin="0" aria-valuemax="100"><i id="barFill"></i></div>
+        <div class="needs" id="needs"></div>
+        <div class="lack" id="lack" role="status" aria-live="polite"></div>
+        <button class="btn-go" id="goBtn">▶ 분비 단백질 만들기 시작</button>
+        <p class="toast" id="toast" role="status" aria-live="polite"></p>
+      </div>
+      <div class="map-wrap"><svg class="map" id="map" viewBox="0 0 400 715" role="img" aria-label="소기관 협력 지도: 엽록체의 당이 마이토콘드리아에서 ATP가 되고, 핵의 mRNA를 라이보솜이 번역해 분비 단백질이 거친면 소포체와 골지체를 거쳐 세포 밖으로 나가는 흐름"></svg></div>
+    </div>
+    <details class="coop-info">
+      <summary>🤝 소기관은 어떻게 협력할까요?</summary>
+      <div class="sec real"><b>🔬 실제 생명 활동</b>
+        <ul>
+          <li><b style="display:inline">에너지</b>: 엽록체가 광합성으로 만든 당은 세포 호흡의 재료가 돼요. 당은 세포질에서 먼저 분해된 뒤 마이토콘드리아로 들어가 ATP가 만들어져요.</li>
+          <li><b style="display:inline">전사</b>: 핵에서 DNA의 유전 정보가 mRNA로 옮겨 적혀요. mRNA는 핵공을 지나 세포질로 나가요.</li>
+          <li><b style="display:inline">번역</b>: 라이보솜이 mRNA의 정보를 읽어 아미노산을 이어 붙여 단백질을 만들어요.</li>
+          <li><b style="display:inline">분비 단백질의 길</b>: 신호가 있는 단백질은 라이보솜이 거친면 소포체에 붙어 소포체 안으로 합성돼요 → 소포체에서 접히고 초기 가공 → 소낭으로 골지체에 운반 → 골지체에서 가공·분류·포장 → 분비 소낭이 세포막과 합쳐지며 세포 밖(식물은 세포벽 쪽)으로 나가요.</li>
+          <li><b style="display:inline">소포체·골지체를 안 거치는 단백질</b>: 세포질에서 일하는 효소처럼 세포질 라이보솜에서 만들어져 그대로 쓰이는 단백질이 많아요. 엽록체·마이토콘드리아 단백질도 일부는 세포질에서 만들어져 들어가고, 일부는 자기 라이보솜이 만들어요.</li>
+          <li><b style="display:inline">ATP의 쓰임</b>: ATP는 단백질 합성, 소낭 운반, 분비처럼 세포의 많은 활동에 쓰여요. (번역에는 GTP 같은 다른 에너지 분자도 함께 쓰여요.)</li>
+        </ul>
+      </div>
+      <div class="sec game"><b>🎮 게임 속 단순화</b>
+        미션 단계마다 드는 당·ATP 개수와 걸리는 시간은 게임용 숫자예요. 당 3개는 아미노산 같은 단백질 재료를 대신하고, 질소 같은 다른 재료와 물은 충분하다고 가정했어요. 지도의 점과 소낭의 움직임은 이해를 돕기 위한 표현이에요.
+      </div>
+    </details>
+  </section>
+
+  <section class="cell quiz" id="quiz">
+    <h3 class="group-title">📝 확인 퀴즈<small>지금까지 배운 내용을 6문제로 확인해요 · 틀려도 설명을 다시 보고 재도전할 수 있어요</small></h3>
+    <div class="qz-box">
+      <p class="qz-lead">퀴즈 보상은 게임용 장치예요. 실제 세포가 문제를 푼다고 당이나 ATP를 얻는 건 아니에요. 교과서에 따라 ‘미토콘드리아’, ‘틸라코이드막’으로도 써요. 같은 말이에요.</p>
+      <div id="quizBox"></div>
+    </div>
+  </section>
+
+  <p class="note">
+    🔬 실제 생명 활동을 단순화한 게임이에요. 물, 이산화 탄소(CO₂), 산소(O₂)는 언제나 충분하다고 가정했어요.
+    소기관 설명에서 <b style="color:var(--real)">실제 기능</b>과 <b style="color:var(--game)">게임 속 단순화</b>를 나눠 볼 수 있어요. 엽록체와 마이토콘드리아는 눌러서 안쪽을 확대해 볼 수 있어요.<br>⚡ 세포 ATP는 마이토콘드리아가 만든 ATP예요. 엽록체 안에서 만들어 쓰는 ATP와는 별개예요.<br>🧪 분비 단백질 미션의 단계별 당·ATP 개수와 시간은 게임용 숫자예요.
+  </p>
+</main>
+
+<dialog id="intro" class="intro" aria-labelledby="introTitle">
+  <div class="intro-body">
+    <h2 id="introTitle" tabindex="-1">📖 학습 안내</h2>
+    <p class="lead">🌱 식물 세포 공장 타이쿤을 시작하기 전에, 무엇을 배우고 어떻게 노는지 먼저 살펴봐요.</p>
+
+    <h3>🎯 학습 목표와 배우는 활동</h3>
+    <ul class="goals">
+      <li><span class="no" aria-hidden="true">1</span><b>소기관 6종의 구조와 기능 설명하기</b>
+        <span class="where">📍 <b>어디서?</b> 핵·라이보솜·거친면 소포체·골지체·엽록체·마이토콘드리아 <u>그림을 눌러</u> 생김새·구조·실제 기능을 읽고, 카드를 업그레이드하며 만나요.</span></li>
+      <li><span class="no" aria-hidden="true">2</span><b>마이토콘드리아와 엽록체의 내부 구조를 기능과 연결하기</b>
+        <span class="where">📍 <b>어디서?</b> 엽록체·마이토콘드리아 그림을 누르면 열리는 <u>‘속 들여다보기’</u>에서 엽록체의 타이라코이드막·스트로마, 마이토콘드리아의 내막·바탕질 같은 부분을 눌러 그 부분의 일을 봐요.</span></li>
+      <li><span class="no" aria-hidden="true">3</span><b>여러 소기관이 협력하는 과정 설명하기</b>
+        <span class="where">📍 <b>어디서?</b> <u>🤝 소기관 협력 지도</u>와 <u>🧪 분비 단백질 미션</u>에서 당 → ATP → 전사·번역 → 소포체·골지체 → 분비의 흐름을 따라가요.</span></li>
+    </ul>
+    <p class="lead">📝 세 가지 목표는 화면 아래쪽의 <u>확인 퀴즈</u>(6문제)에서 한 번 더 점검해요.</p>
+
+    <h3>🕹️ 게임 규칙과 조작 방법</h3>
+    <ol class="rules">
+      <li><b style="display:inline">🎯 게임 목표</b>: 마이토콘드리아가 만든 <b style="display:inline">⚡ ATP를 20,000개</b> 모으면 클리어예요. 업그레이드에 ATP를 써도 ‘만든 양’은 줄지 않아요. 보통 5~10분 걸리는 <b style="display:inline">쉬운 난이도</b>예요. (설명 창을 열어 둔 동안은 시간이 가지 않아요.)</li>
+      <li><b style="display:inline">☀️ 빛 받기</b> 버튼을 누르면 엽록체가 <b style="display:inline">🍬 당</b>을 만들어요.</li>
+      <li>마이토콘드리아는 1초마다 당을 분해해 <b style="display:inline">⚡ 세포 ATP</b>를 만들어요. 따로 누르지 않아도 자동이에요.</li>
+      <li>ATP로 소기관 카드의 <b style="display:inline">업그레이드</b>를 눌러 레벨을 올려요. 엽록체는 당을 더 많이, 마이토콘드리아는 더 빨리 ATP로 바꿔요. 핵·라이보솜·거친면 소포체·골지체는 레벨 0에서 시작하니 먼저 만들어 줘요.</li>
+      <li><b style="display:inline">단백질 라인</b>의 네 소기관 중 가장 낮은 레벨이 오를수록 엽록체·마이토콘드리아의 생산이 늘어요.</li>
+      <li><b style="display:inline">🧪 분비 단백질 미션</b>은 ‘시작’ 버튼으로 시작해요. 단계마다 당과 ATP를 내고 진행돼요. 모자라면 무엇이 부족한지 알려 줘요.</li>
+      <li><b style="display:inline">📝 확인 퀴즈</b>는 화면 아래쪽에 있어요. 틀리면 이유를 읽고, 관련 소기관 설명을 다시 본 뒤 재도전해요. 맞히면 🍬 당이나 ⚡ ATP 보상을 받고, 6문제를 모두 한 번에 맞히면 영구 보너스도 받아요.</li>
+      <li><b style="display:inline">조작</b>: 마우스로 누르거나 화면을 터치해요. 키보드는 Tab으로 이동하고 Enter나 Space로 눌러요. 설명 창은 ‘닫기’ 버튼이나 Esc로 닫아요.</li>
+    </ol>
+
+    <h3>🤔 왜 타이쿤 형식일까요?</h3>
+    <div class="sec why"><b>🏭 선택한 이유</b>
+      소기관의 <u>생산</u>과 <u>자원 사용</u>을 직접 관리해 보면서, 각 소기관의 기능과 서로 협력하는 관계를 이해하기 위해서예요. 당이 모자라면 ATP도 모자라고, ATP가 모자라면 단백질 생산이 멈추는 것을 직접 겪어 볼 수 있어요.</div>
+
+    <h3>🔬 실제 세포와 게임은 달라요</h3>
+    <div class="cmp">
+      <div class="sec game"><b>🎮 게임적 표현</b>
+        <ul>
+          <li>버튼을 눌러 <b style="display:inline">광합성을 시작</b>하는 것</li>
+          <li>ATP로 <b style="display:inline">업그레이드를 구매</b>하고 레벨을 올리는 것</li>
+          <li>미션의 당·ATP 개수, 걸리는 시간, 보상</li>
+          <li>ATP 20,000개 모으기라는 목표, 시간 재기, 난이도</li>
+        </ul>
+      </div>
+      <div class="sec real"><b>🔬 실제 세포</b>
+        <ul>
+          <li>세포는 버튼을 누르거나 소기관을 사지 않아요.</li>
+          <li>광합성은 빛 등 조건이 갖춰지면 엽록체에서 일어나고, 소기관의 양과 활동은 세포의 상태와 필요에 따라 조절돼요.</li>
+          <li>모든 단백질이 소포체와 골지체를 거치는 것도 아니에요.</li>
+          <li>세포는 ATP를 많이 모아 두지 않고, 필요한 만큼 만들어 바로 써요.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="lead">게임은 이해를 돕기 위해 실제를 단순화했어요. 소기관 설명에서 <b style="color:var(--real)">실제 기능</b>과 <b style="color:var(--game)">게임 속 단순화</b>를 나눠 볼 수 있어요.</p>
+  </div>
+  <div class="intro-foot">
+    <button class="btn-start" id="introStart">▶ 게임 시작</button>
+    <small>나중에 화면 위쪽의 ‘📖 학습 안내 다시 보기’로 다시 읽을 수 있어요.</small>
+  </div>
+</dialog>
+
+<dialog id="clear" class="intro clear" aria-labelledby="clearTitle">
+  <div class="intro-body">
+    <h2 id="clearTitle" tabindex="-1">🏆 목표 달성!</h2>
+    <p class="lead" id="clearLead"></p>
+    <div class="clear-stats" id="clearStats"></div>
+    <div class="clear-learn"><b>🧠 오늘 살펴본 것</b>
+      <ul>
+        <li>소기관 6종은 각각 구조와 기능이 달라요. (그림을 눌러 다시 볼 수 있어요)</li>
+        <li>엽록체는 타이라코이드막에서 빛을 받고 스트로마에서 당을 만들어요. 마이토콘드리아는 바탕질과 내막에서 ATP를 만들어요.</li>
+        <li>당 → ATP → 전사·번역 → 소포체·골지체 → 분비처럼 여러 소기관이 이어서 일해요. 모든 단백질이 소포체와 골지체를 거치는 건 아니에요.</li>
+      </ul>
+    </div>
+    <p class="lead">🔬 ATP 모으기, 목표 시간, 난이도는 게임용 장치예요. 실제 세포는 ATP를 쌓아 두지 않고 필요한 만큼 만들어 바로 써요.</p>
+  </div>
+  <div class="clear-acts">
+    <button type="button" class="main" id="clearKeep">▶ 계속 놀기</button>
+    <button type="button" id="clearQuiz">📝 확인 퀴즈 풀러 가기</button>
+    <button type="button" id="clearAgain">🔄 처음부터 다시</button>
+  </div>
+</dialog>
+
+<dialog id="info"></dialog>
+
+<script>
+  // ===== 설정값 =====
+  const CONFIG = {
+    sugarPerLevel: 4,     // 엽록체 레벨 1당, 빛 1번에 만드는 당
+    sugarUsePerLevel: 3,  // 마이토콘드리아 레벨 1당, 1초에 ATP로 바꾸는 당
+    atpPerSugar: 1,       // 당 1개로 만드는 ATP
+    costGrowth: 1.55,     // 레벨이 오를 때마다 비용 배수
+    lineBonus: 0.15,      // 단백질 라인 레벨 1당 생산 보너스 (15%)
+    goalAtp: 20000        // 게임 목표: 마이토콘드리아가 만든 ATP 누적량 (5~10분 분량, 쉬움 난이도)
+  };
+
+  // ===== 소기관 데이터 (그림 + 설명) =====
+  const ORG = [
+    { id:'chloro', name:'엽록체', color:'#7ed957', start:1, base:8, tag:'광합성이 일어나는 곳 (식물 세포에만 있어요)',
+      sub:'엽록체 ATP는 주로 엽록체 안에서 써요',
+      svg:`<svg viewBox="0 0 120 80"><ellipse cx="60" cy="40" rx="55" ry="32" fill="#8fe06b" stroke="#3f9e3a" stroke-width="4"/><ellipse cx="60" cy="40" rx="47" ry="25" fill="#c4f4a3" stroke="#3f9e3a" stroke-width="1.5"/><g fill="#2f8a3a"><rect x="26" y="26" width="16" height="5" rx="2.5"/><rect x="26" y="33" width="16" height="5" rx="2.5"/><rect x="26" y="40" width="16" height="5" rx="2.5"/><rect x="26" y="47" width="16" height="5" rx="2.5"/><rect x="52" y="26" width="16" height="5" rx="2.5"/><rect x="52" y="33" width="16" height="5" rx="2.5"/><rect x="52" y="40" width="16" height="5" rx="2.5"/><rect x="52" y="47" width="16" height="5" rx="2.5"/><rect x="78" y="26" width="16" height="5" rx="2.5"/><rect x="78" y="33" width="16" height="5" rx="2.5"/><rect x="78" y="40" width="16" height="5" rx="2.5"/><rect x="78" y="47" width="16" height="5" rx="2.5"/></g><path d="M42 38H52M68 38H78" stroke="#2f8a3a" stroke-width="2"/></svg>`,
+      shape:'납작한 타원형(알갱이 모양)이고 초록색이에요. 엽록소 때문에 녹색으로 보여요.',
+      structure:'바깥을 이중막이 싸고 있어요. 안에는 타이라코이드라는 납작한 주머니가 있고, 이 주머니가 쌓인 것이 그라나예요. 타이라코이드막에 엽록소가 있고, 타이라코이드 바깥을 채운 액체 부분이 스트로마예요.',
+      real:'광합성을 해요. 타이라코이드막에서 빛에너지로 ATP와 NADPH를 만들고, 스트로마에서 이를 이용해 CO₂로 유기물을 합성해요. 이때 산소가 나와요. 엽록체에서 만든 ATP는 주로 엽록체 안에서 유기물 합성에 쓰여요.',
+      game:'빛 받기 1번에 이 과정 전체를 묶어서 당이 합성되는 것으로 보여 줘요. 엽록체 안의 ATP와 NADPH는 게임에서 따로 세지 않고, ⚡ 세포 ATP에도 더하지 않아요. 물과 CO₂는 무한이에요. 만든 당은 마이토콘드리아의 ATP 생산과 분비 단백질 미션(단백질 재료)에 쓰여요.' },
+    { id:'mito', name:'마이토콘드리아', color:'#ff8f84', start:1, base:8, tag:'세포 호흡으로 ATP를 만드는 곳',
+      sub:'당을 분해해 만든 ATP가 공용 자원이에요',
+      svg:`<svg viewBox="0 0 120 80"><rect x="6" y="14" width="108" height="52" rx="26" fill="#ffc2b8" stroke="#e0584b" stroke-width="4"/><g stroke="#e0584b" stroke-width="3.5" stroke-linecap="round" fill="none"><path d="M30 18V46M54 18V46M78 18V46"/><path d="M42 62V34M66 62V34M90 62V34"/></g></svg>`,
+      shape:'막대나 타원 모양이에요. 그림처럼 안쪽이 주름진 모습이 특징이에요.',
+      structure:'이중막 구조예요. 안쪽막(내막)이 안으로 주름져 있고, 내막 안쪽 공간을 바탕질이라고 해요. 식물 세포와 동물 세포 모두에 있어요.',
+      real:'세포 호흡으로 ATP를 만들어요. 바탕질의 시트르산 회로에서 당이 분해된 물질을 더 분해하고, 내막의 전자 전달계와 ATP 합성효소에서 ATP를 만들어요. 산소를 쓰고 CO₂와 물이 나와요. 포도당 1분자로 ATP를 많이(약 30개 안팎) 만들어요.',
+      game:'당을 1초마다 정해진 만큼 분해해 ⚡ 세포 ATP를 만들어요. 여러 단계를 한 번에 묶었고, 당 1개 → ATP 1개는 게임용 비율이에요(실제로는 훨씬 많아요). 산소는 항상 충분해요. 만든 ⚡ 세포 ATP는 업그레이드와 분비 단백질 미션의 단계마다 써요.' },
+    { id:'nucleus', name:'핵', color:'#9b7fe8', start:0, base:12, tag:'유전 정보를 보관하는 곳',
+      svg:`<svg viewBox="0 0 120 80"><circle cx="60" cy="40" r="35" fill="#d9ccff" stroke="#7a5bd6" stroke-width="4"/><circle cx="60" cy="40" r="28" fill="none" stroke="#7a5bd6" stroke-width="2" stroke-dasharray="4 7"/><circle cx="50" cy="38" r="9" fill="#5b3fb0"/><path d="M66 26q10 6 0 12t8 12M38 54q8-4 14 2" stroke="#7a5bd6" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`,
+      shape:'동그란 모양이고, 세포 안에서 가장 눈에 띄는 큰 소기관이에요.',
+      structure:'이중막인 핵막이 싸고 있고, 핵막에는 물질이 드나드는 핵공이 있어요. 안에는 DNA와 단백질이 모인 염색사가 있고, 진하게 보이는 인에서는 rRNA가 만들어져 라이보솜 소단위체가 조립돼요.',
+      real:'유전 정보(DNA)를 보관하고, 유전자 발현을 조절해요. DNA의 정보를 mRNA로 옮겨 적는 전사가 핵에서 일어나고, mRNA는 핵공을 지나 세포질로 나가요. 세포가 분열할 때 필요한 DNA 복제도 핵 안에서 일어나요.',
+      game:'핵은 공장의 설계도 사무실이에요. 단백질 라인의 첫 단계로, 레벨이 라인 레벨에 반영돼요. 실제 핵이 생산량을 올려 주는 건 아니고, 연결을 보여 주려고 만든 게임 규칙이에요. 분비 단백질 미션의 1단계(전사)에 핵이 필요해요.' },
+    { id:'ribo', name:'라이보솜', color:'#f2b134', start:0, base:12, tag:'단백질을 합성하는 곳',
+      svg:`<svg viewBox="0 0 120 80"><path d="M4 46Q30 12 60 40T116 34" stroke="#b07a2a" stroke-width="3" fill="none" stroke-linecap="round"/><g stroke="#c9822a" stroke-width="2"><circle cx="30" cy="38" r="9" fill="#ffd166"/><circle cx="30" cy="28" r="6" fill="#f4a261"/><circle cx="60" cy="46" r="9" fill="#ffd166"/><circle cx="60" cy="36" r="6" fill="#f4a261"/><circle cx="90" cy="54" r="9" fill="#ffd166"/><circle cx="90" cy="44" r="6" fill="#f4a261"/></g><g fill="#e0584b"><circle cx="30" cy="52" r="2.5"/><circle cx="33" cy="58" r="2.5"/><circle cx="60" cy="60" r="2.5"/><circle cx="57" cy="66" r="2.5"/><circle cx="90" cy="68" r="2.5"/></g></svg>`,
+      shape:'아주 작은 알갱이예요. 큰 소단위체와 작은 소단위체가 맞물린 모양이에요.',
+      structure:'rRNA와 단백질로 이루어져 있고, 막이 없어요. 세포질에 떠 있거나(유리 라이보솜) 거친면 소포체에 붙어 있어요. 식물 세포, 동물 세포는 물론 원핵세포에도 있어요.',
+      real:'mRNA의 정보를 읽어 아미노산을 차례로 연결해 단백질을 합성해요(번역). 세포질에 있는 유리 라이보솜은 주로 세포질에서 쓰이는 단백질을, 소포체에 붙은 라이보솜은 분비 단백질이나 막 단백질을 만들어요.',
+      game:'분비 단백질 미션의 2단계(번역)에 라이보솜이 필요해요. 단백질을 직접 모으는 자원은 없고, 라이보솜 레벨이 단백질 라인 레벨에 반영돼요. 미션에서는 소포체에 붙은 라이보솜 경로만 보여 줘요.' },
+    { id:'rer', name:'거친면 소포체', color:'#4ea6ec', start:0, base:12, tag:'단백질을 접고 옮기는 곳',
+      svg:`<svg viewBox="0 0 120 80"><g fill="#c6e4ff" stroke="#3b8fd9" stroke-width="3" stroke-linejoin="round"><path id="s" d="M8 14Q34 4 60 14T112 14V24Q86 34 60 24T8 24Z"/><path d="M8 32Q34 22 60 32T112 32V42Q86 52 60 42T8 42Z"/><path d="M8 50Q34 40 60 50T112 50V60Q86 70 60 60T8 60Z"/></g><g fill="#f4a261" stroke="#c9822a" stroke-width="1"><circle cx="20" cy="10" r="3.2"/><circle cx="34" cy="6.5" r="3.2"/><circle cx="48" cy="10" r="3.2"/><circle cx="76" cy="17" r="3.2"/><circle cx="92" cy="17" r="3.2"/><circle cx="104" cy="12" r="3.2"/><circle cx="30" cy="66" r="3.2"/><circle cx="60" cy="68" r="3.2"/><circle cx="90" cy="68" r="3.2"/></g></svg>`,
+      shape:'납작한 주머니가 여러 겹 포개진 모양이고, 겉에 알갱이가 붙어서 거칠어 보여요.',
+      structure:'막으로 된 납작한 주머니(시스터나)가 이어진 구조예요. 핵막의 바깥막과 이어져 있고, 바깥면에 라이보솜이 붙어 있어요.',
+      real:'붙어 있는 라이보솜이 만든 단백질이 소포체 안으로 들어와 접히고 초기 가공을 거쳐요. 이 단백질은 소낭에 싸여 골지체로 운반돼요. 분비 단백질, 막 단백질, 그리고 리소좀(식물 세포에서는 주로 액포)으로 가는 단백질 등이 이 경로를 지나요.',
+      game:'단백질 라인의 운반 단계예요. 분비 단백질 미션의 2·3단계에 필요하고, 레벨은 라인 레벨에 반영돼요. 모든 단백질이 이곳을 거치는 건 아니고, 세포질 단백질은 거치지 않아요. 매끈면 소포체(지질 합성, 해독)는 이번 버전에 넣지 않았어요.' },
+    { id:'golgi', name:'골지체', color:'#ec5fa4', start:0, base:12, tag:'단백질을 가공하고 포장해 내보내는 곳',
+      svg:`<svg viewBox="0 0 120 80"><g fill="none" stroke="#e0559a" stroke-width="8" stroke-linecap="round"><path d="M18 62Q60 46 102 62"/><path d="M22 49Q60 33 98 49"/><path d="M26 36Q60 20 94 36"/><path d="M32 23Q60 9 88 23"/></g><g fill="#ffe0ef" stroke="#e0559a" stroke-width="2.5"><circle cx="8" cy="70" r="4.5"/><circle cx="6" cy="54" r="4.5"/><circle cx="106" cy="14" r="5"/><circle cx="114" cy="30" r="4.5"/></g></svg>`,
+      shape:'둥글게 휘어진 납작한 주머니가 층층이 쌓인 모양이고, 가장자리에 작은 소낭이 붙어 있어요.',
+      structure:'납작한 주머니(시스터나) 4~8개가 쌓여 있어요. 소포체에서 온 소낭이 들어오는 쪽을 시스면, 소낭이 떨어져 나가는 반대쪽을 트랜스면이라고 해요.',
+      real:'소포체에서 온 단백질을 더 가공하고(예: 당 붙이기), 종류별로 분류해 소낭에 포장해요. 이 소낭은 세포막으로 가서 세포 밖으로 분비되거나 다른 곳으로 가요. 식물 세포에서는 세포벽의 다당류(펙틴 등)를 만드는 데도 관여해요.',
+      game:'단백질 라인의 마지막 단계(포장·분비)로, 분비 단백질 미션의 4·5단계에 필요해요. 라인 레벨은 핵, 라이보솜, 거친면 소포체, 골지체 중 가장 낮은 레벨이고, 라인 레벨 1당 엽록체와 마이토콘드리아의 생산이 15% 늘어요. 실제로는 이런 직접 효과가 없는 게임용 규칙이에요.' }
+  ];
+
+  // ===== 게임 상태 =====
+  const state = { sugar:0, atp:0, atpTotal:0, cleared:false, started:false, playSec:0, clearSec:0, secreted:0, perm:{ chloro:0, mito:0 }, quizPerfect:false, lv:{ chloro:1, mito:1, nucleus:0, ribo:0, rer:0, golgi:0 } };
+  const LINE = ['nucleus', 'ribo', 'rer', 'golgi'];
+  const $ = id => document.getElementById(id);
+  const fmt = n => n.toLocaleString('ko-KR');
+  const byId = id => ORG.find(o => o.id === id);
+  const lineLv = () => Math.min(...LINE.map(id => state.lv[id]));
+  const mult = () => 1 + CONFIG.lineBonus * lineLv();
+  const sugarPerClick = () => Math.round(state.lv.chloro * CONFIG.sugarPerLevel * mult() * (1 + state.perm.chloro));
+  const sugarCapacity = () => Math.round(state.lv.mito * CONFIG.sugarUsePerLevel * mult() * (1 + state.perm.mito));
+  const cost = o => Math.round(o.base * Math.pow(CONFIG.costGrowth, state.lv[o.id] - o.start));
+
+  function effText(o) {
+    if (o.id === 'chloro') return '빛 1번 → 당 +' + sugarPerClick() + ' 합성';
+    if (o.id === 'mito') return '1초에 당 최대 ' + sugarCapacity() + '개 분해 → 세포 ATP';
+    return state.lv[o.id] === 0 ? '아직 없어요. 업그레이드로 만들어요' : '단백질 라인에 참여 중';
+  }
+
+  // ===== 카드 만들기 =====
+  function buildCards() {
+    ORG.forEach(o => {
+      const card = document.createElement('div');
+      card.className = 'card'; card.id = 'card-' + o.id; card.style.setProperty('--c', o.color);
+      card.innerHTML = `
+        <button class="draw" data-id="${o.id}" aria-label="${o.name} 설명 보기">${o.svg}</button>
+        <h3>${o.name}</h3>
+        <p class="lv">레벨 <span id="lv-${o.id}"></span></p>
+        <p class="eff" id="eff-${o.id}"></p><p class="sub" id="sub-${o.id}"></p>
+        <button class="btn-up" id="up-${o.id}">업그레이드<br><small>ATP <span id="cost-${o.id}"></span> 필요</small></button>`;
+      $(['chloro', 'mito'].includes(o.id) ? 'gridEnergy' : 'gridLine').appendChild(card);
+      card.querySelector('.draw').addEventListener('click', () => openInfo(o.id));
+      $('up-' + o.id).addEventListener('click', () => upgrade(o.id));
+    });
+  }
+
+  function render() {
+    $('sugar').textContent = fmt(state.sugar);
+    $('atp').textContent = fmt(state.atp);
+    ORG.forEach(o => {
+      $('lv-' + o.id).textContent = state.lv[o.id];
+      $('eff-' + o.id).textContent = effText(o);
+      $('sub-' + o.id).textContent = o.sub || '';
+      $('cost-' + o.id).textContent = fmt(cost(o));
+      $('up-' + o.id).disabled = state.atp < cost(o);
+    });
+    const n = lineLv();
+    const low = LINE.filter(id => state.lv[id] === n).map(id => byId(id).name).join(', ');
+    $('lineStatus').textContent = '🧬 단백질 라인 레벨 ' + n + ' → 엽록체·마이토콘드리아 생산 +' + Math.round(n * CONFIG.lineBonus * 100) + '%  |  레벨을 올리려면 ' + low + ' 업그레이드!';
+    if (typeof renderCoop === 'function') renderCoop();
+    if (typeof renderGoal === 'function') renderGoal();
+  }
+
+  // ===== 설명 창 =====
+  function openInfo(id) {
+    if (ZOOM[id]) return openZoom(id);
+    const o = byId(id), d = $('info');
+    d.style.setProperty('--c', o.color);
+    d.innerHTML = `
+      <div class="d-head">${o.svg}<div><h2>${o.name}</h2><p>${o.tag}</p></div></div>
+      <div class="sec"><b>🔍 생김새</b>${o.shape}</div>
+      <div class="sec"><b>🧱 구조적 특징</b>${o.structure}</div>
+      <div class="sec real"><b>🔬 실제 기능</b>${o.real}</div>
+      <div class="sec game"><b>🎮 게임 속 단순화</b>${o.game}</div>
+      <button class="btn-close" id="closeInfo">닫기</button>`;
+    d.showModal();
+    $('closeInfo').addEventListener('click', () => d.close());
+  }
+  $('info').addEventListener('click', e => { if (e.target === $('info')) $('info').close(); });
+
+  // ===== 확대 보기 (엽록체·마이토콘드리아) =====
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mv = (d, dur, delay) => RM ? `<animateMotion path="${d}" dur="0.01s" fill="freeze"/>` : `<animateMotion path="${d}" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/>`;
+  const dot = (d, fill, r = 4, dur = 2.2, delay = 0) => `<circle r="${r}" fill="${fill}" stroke="#fff" stroke-width="1">${mv(d, dur, delay)}</circle>`;
+  const chip = (d, t, fill, dur = 2.8, delay = 0) => { const w = 12 + t.length * 6.5; return `<g><rect x="${-w / 2}" y="-8" width="${w}" height="16" rx="8" fill="${fill}" stroke="#555"/><text y="3.5" text-anchor="middle" font-size="9" fill="#222">${t}</text>${mv(d, dur, delay)}</g>`; };
+  const spin = (cx, cy, r, color) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="5" stroke-dasharray="22 9" stroke-linecap="round">${RM ? '' : `<animateTransform attributeName="transform" type="rotate" from="0 ${cx} ${cy}" to="360 ${cx} ${cy}" dur="3s" repeatCount="indefinite"/>`}</circle>`;
+
+  // 마이토콘드리아: 크리스타 위치 [x, 전자전달계 y, ATP 합성효소 y, 방향]
+  const MC = [[125, 60, 88, 1], [205, 58, 88, 1], [285, 60, 88, 1], [165, 190, 172, -1], [245, 190, 172, -1]];
+  const mitoSvg = `<svg class="zoom" viewBox="0 0 400 260" role="img" aria-label="마이토콘드리아 내부 확대 그림">
+    <rect x="8" y="16" width="384" height="228" rx="114" fill="#ffd9d1" stroke="#e0584b" stroke-width="6"/>
+    <text x="32" y="134" text-anchor="middle" font-size="11" fill="#a33">외막</text>
+    <g class="reg" data-r="matrix"><path d="M62 130C62 70 112 40 200 40S338 70 338 130 288 220 200 220 62 190 62 130Z" fill="#fff3bd"/>
+      <circle cx="200" cy="130" r="20" fill="none" stroke="#e8a400" stroke-width="4" stroke-dasharray="3 5"/>
+      <text x="200" y="128" text-anchor="middle" font-size="8.5" fill="#7a5a00">시트르산</text><text x="200" y="139" text-anchor="middle" font-size="8.5" fill="#7a5a00">회로</text>
+      <text x="100" y="134" text-anchor="middle" font-size="13" fill="#7a5a00">바탕질</text></g>
+    <g class="reg" data-r="inner"><path d="M62 130C62 70 112 40 200 40S338 70 338 130 288 220 200 220 62 190 62 130Z" fill="none" stroke="#d9534f" stroke-width="7"/>
+      <path d="M125 50V104M205 41V100M285 50V104M165 214V158M245 214V158" stroke="#d9534f" stroke-width="6" stroke-linecap="round" fill="none"/>
+      ${MC.map(([x, y]) => `<rect x="${x - 9}" y="${y}" width="18" height="10" rx="3" fill="#4a7fe0" stroke="#fff"/>`).join('')}
+      ${MC.map(([x, , y]) => `<path d="M${x} ${y}h-10" stroke="#c9731a" stroke-width="3"/><circle cx="${x - 16}" cy="${y}" r="7" fill="#ffa94d" stroke="#c9731a" stroke-width="2"/>`).join('')}
+      <path d="M352 130H340" stroke="#d9534f" stroke-width="2"/><text x="368" y="134" text-anchor="middle" font-size="11" fill="#a33">내막</text></g>
+    <g class="anim"></g></svg>`;
+  const mitoInner = () => MC.map(([x, , y, dir], k) => {
+    const e = dir > 0 ? `M${x} 102V54` : `M${x} 160V208`;
+    return dot(e, '#2a5bd7', 3.5, 2.2, k * 0.3) + chip(`M${x - 16} ${y}V${dir > 0 ? 128 : 134}`, 'ATP', '#ffe066', 2.8, k * 0.5);
+  }).join('');
+  const mitoMatrix = () => spin(200, 130, 20, '#e8a400') + chip('M80 130H174', '당 분해물', '#ffd27d', 2.8, 0)
+    + chip('M214 116L262 76', 'CO₂', '#d9d9d9', 2.4, 0.8) + chip('M186 116L138 76', 'CO₂', '#d9d9d9', 2.4, 1.6)
+    + dot('M204 110L205 72', '#2a5bd7', 3.5, 2.4, 0.4) + dot('M192 146L168 188', '#2a5bd7', 3.5, 2.4, 1.2);
+
+  // 엽록체: 그라나 3개(각 5장)
+  const stacks = [105, 200, 295].map(cx => [96, 112, 128, 144, 160].map(y => `<rect x="${cx - 32}" y="${y}" width="64" height="11" rx="5.5" fill="#66c256" stroke="#1f6b2a" stroke-width="3"/>`).join('')).join('');
+  const chloroSvg = `<svg class="zoom" viewBox="0 0 400 260" role="img" aria-label="엽록체 내부 확대 그림">
+    <g class="reg" data-r="stroma"><ellipse cx="200" cy="130" rx="192" ry="116" fill="#c4f4a3" stroke="#2f8a3a" stroke-width="7"/>
+      <text x="200" y="52" text-anchor="middle" font-size="14" fill="#1f5a28">스트로마</text>
+      <circle cx="200" cy="216" r="16" fill="none" stroke="#7aa63a" stroke-width="4" stroke-dasharray="3 5"/><text x="228" y="220" font-size="10" fill="#1f5a28">유기물 합성</text></g>
+    <g class="reg" data-r="thyla">${stacks}<path d="M137 134H168M232 134H263" stroke="#1f6b2a" stroke-width="5"/>
+      <text x="105" y="190" text-anchor="middle" font-size="11" fill="#1f5a28">타이라코이드막</text></g>
+    <g class="anim"></g></svg>`;
+  const P_ATP = 'M236 150Q252 192 216 204', P_NADPH = 'M164 150Q148 192 184 204';
+  const chloroThyla = () => dot('M20 30L90 94', '#ffd93d', 5, 2, 0) + dot('M52 18L112 92', '#ffd93d', 5, 2, 0.6) + dot('M0 56L76 100', '#ffd93d', 5, 2, 1.2)
+    + chip('M16 150L70 140', 'H₂O', '#bfe6ff', 2.4, 0) + chip('M105 94V28', 'O₂', '#e8f6ff', 2.4, 0.8)
+    + chip(P_ATP, 'ATP', '#b6f0a0', 2.8, 0.3) + chip(P_NADPH, 'NADPH', '#9fc0ff', 2.8, 1);
+  const chloroStroma = () => spin(200, 216, 16, '#4c8f1c') + chip('M74 214H184', 'CO₂', '#d9d9d9', 2.6, 0)
+    + chip(P_ATP, 'ATP', '#b6f0a0', 2.8, 0.3) + chip(P_NADPH, 'NADPH', '#9fc0ff', 2.8, 1)
+    + chip('M218 216L340 206', '유기물', '#ffb3c7', 2.6, 0.6);
+
+  const ZOOM = {
+    mito: { svg: mitoSvg, noteCls: 'cell-atp',
+      note: '🟡 마이토콘드리아가 만든 이 ATP가 게임의 <b>⚡ 세포 ATP</b>예요. 세포 활동에 공용으로 쓰이고, 게임에서는 업그레이드에 써요.',
+      regions: {
+        inner: { name: '내막', anim: mitoInner, title: '내막 — 전자 전달계와 ATP 합성효소',
+          io: '들어오는 것: 전자, 산소(O₂) → 나오는 것: 물(H₂O), ATP',
+          text: '바탕질에서 온 전자(🔵)가 내막의 전자 전달계를 따라 이동해요. 이때 나오는 에너지로 ATP 합성효소가 ATP(🟡)를 만들어요. 전자는 마지막에 산소와 만나 물이 돼요.' },
+        matrix: { name: '바탕질', anim: mitoMatrix, title: '바탕질 — 시트르산 회로',
+          io: '들어오는 것: 당이 분해된 물질 → 나오는 것: CO₂, 전자',
+          text: '당이 분해되어 만들어진 물질이 바탕질로 들어오면 시트르산 회로에서 더 분해돼요. 이때 CO₂가 나오고, 전자(🔵)가 내막의 전자 전달계로 보내져요.' } } },
+    chloro: { svg: chloroSvg, noteCls: '',
+      note: '🟩 엽록체 안에서 만든 ATP는 주로 엽록체 안에서 유기물을 만드는 데 쓰여요. 게임의 <b>⚡ 세포 ATP</b>(마이토콘드리아가 만든 공용 ATP)와는 달라서 업그레이드에 쓰지 않아요.',
+      regions: {
+        thyla: { name: '타이라코이드막', anim: chloroThyla, title: '타이라코이드막 — 빛에너지로 ATP와 NADPH 만들기',
+          io: '들어오는 것: 빛에너지, 물(H₂O) → 나오는 것: 산소(O₂), ATP, NADPH',
+          text: '엽록소가 빛에너지(🟡)를 흡수하면 물이 분해되어 산소가 나와요. 이 빛에너지로 ATP와 NADPH(에너지를 저장한 물질)가 만들어져요. 이 둘은 스트로마로 가서 쓰여요.' },
+        stroma: { name: '스트로마', anim: chloroStroma, title: '스트로마 — CO₂로 유기물 만들기',
+          io: '들어오는 것: CO₂, ATP, NADPH → 나오는 것: 유기물(당)',
+          text: '스트로마에서는 타이라코이드막에서 온 ATP와 NADPH의 에너지로 CO₂에서 유기물(당)을 합성해요. 이 유기물이 식물의 양분이 돼요.' } } }
+  };
+
+  function openZoom(id) {
+    const o = byId(id), z = ZOOM[id], d = $('info');
+    d.style.setProperty('--c', o.color);
+    d.innerHTML = `
+      <div class="d-head"><div><h2>${o.name} 속 들여다보기</h2><p>${o.tag}</p></div></div>
+      ${z.svg}
+      <div class="chips">${Object.entries(z.regions).map(([k, r]) => `<button class="chip" data-r="${k}">${r.name}</button>`).join('')}</div>
+      <div class="sec" id="region">그림의 부분이나 버튼을 눌러 보세요. 해당 과정이 움직여요.</div>
+      <div class="atp-note ${z.noteCls}">${z.note}</div>
+      <details><summary>🔍 생김새·구조·실제 기능·게임 속 단순화</summary>
+        <div class="sec"><b>🔍 생김새</b>${o.shape}</div>
+        <div class="sec"><b>🧱 구조적 특징</b>${o.structure}</div>
+        <div class="sec real"><b>🔬 실제 기능</b>${o.real}</div>
+        <div class="sec game"><b>🎮 게임 속 단순화</b>${o.game}</div>
+      </details>
+      <button class="btn-close" id="closeInfo">닫기</button>`;
+    d.showModal();
+    const svg = d.querySelector('svg.zoom');
+    const pick = k => {
+      const r = z.regions[k];
+      svg.classList.add('has-sel');
+      svg.querySelectorAll('.reg').forEach(g => g.classList.toggle('on', g.dataset.r === k));
+      d.querySelectorAll('.chip').forEach(b => b.classList.toggle('on', b.dataset.r === k));
+      svg.querySelector('.anim').innerHTML = r.anim();
+      if (svg.setCurrentTime) svg.setCurrentTime(0);
+      $('region').innerHTML = `<b>${r.title}</b><span class="io">${r.io}</span>${r.text}`;
+    };
+    svg.querySelectorAll('.reg').forEach(g => g.addEventListener('click', () => pick(g.dataset.r)));
+    d.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => pick(b.dataset.r)));
+    $('closeInfo').addEventListener('click', () => d.close());
+  }
+
+  // ===== 생산과 업그레이드 =====
+  function pop(id, text) {
+    const el = document.createElement('span');
+    el.className = 'pop'; el.textContent = text;
+    $('card-' + id).appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  $('lightBtn').addEventListener('click', () => {
+    const made = sugarPerClick();
+    state.sugar += made;
+    pop('chloro', '☀️ +' + made + ' 🍬');
+    render();
+  });
+
+  setInterval(() => {
+    const used = Math.min(Math.max(0, state.sugar - sugarReserve()), sugarCapacity()); // 미션 재료로 남겨 둔 당은 건드리지 않아요
+    if (used > 0) {
+      const made = used * CONFIG.atpPerSugar;
+      state.sugar -= used; state.atp += made; state.atpTotal += made;
+      pop('mito', '+' + made + ' ⚡');
+      render();
+      checkGoal();
+    }
+  }, 1000);
+
+  function upgrade(id) {
+    const o = byId(id), c = cost(o);
+    if (state.atp < c) return;
+    state.atp -= c; state.lv[id] += 1;
+    render();
+  }
+
+  // ===== 소기관 협력 지도 + 분비 단백질 미션 =====
+  const STEPS = [
+    { icon:'📜', name:'전사', where:'핵', need:['nucleus'], atp:2, sugar:0, base:2.2, speedOrg:'nucleus', nodes:['nucleus'], path:'P_nr', token:'mRNA', tokColor:'#ffc9c1',
+      text:'핵에서 DNA의 유전 정보를 mRNA로 옮겨 적어요(전사). mRNA는 핵공을 지나 세포질로 나가요.' },
+    { icon:'🧩', name:'번역', where:'라이보솜 + 거친면 소포체', need:['ribo', 'rer'], atp:4, sugar:3, base:2.6, speedOrg:'ribo', nodes:['ribo', 'rer'], path:'P_rr', token:'단백질', tokColor:'#bfe0ff',
+      text:'라이보솜이 mRNA의 정보를 읽어 아미노산을 이어 붙여요(번역). 분비 단백질은 신호가 있어서, 라이보솜이 거친면 소포체에 붙어 단백질을 소포체 안으로 넣어요. 당은 아미노산 같은 재료로 써요.' },
+    { icon:'🌀', name:'접힘·초기 가공', where:'거친면 소포체', need:['rer'], atp:2, sugar:0, base:2.2, speedOrg:'rer', nodes:['rer'], path:'P_re', token:'소낭', tokColor:'#e6f3ff',
+      text:'소포체 안에서 단백질이 접히고 초기 가공을 받아요. 그다음 소낭에 싸여 골지체로 운반돼요.' },
+    { icon:'📦', name:'가공·포장', where:'골지체', need:['golgi'], atp:2, sugar:0, base:2.2, speedOrg:'golgi', nodes:['golgi'], path:'P_gm', token:'분비 소낭', tokColor:'#ffd6ea',
+      text:'골지체에서 단백질을 더 가공하고(예: 당 붙이기) 종류별로 분류해 분비 소낭에 포장해요. 소낭은 세포막 쪽으로 이동해요.' },
+    { icon:'🚀', name:'분비', where:'골지체 → 세포막', need:['golgi'], atp:1, sugar:0, base:1.6, speedOrg:'golgi', nodes:['golgi', 'membrane'], path:null, token:'분비!', tokColor:'#c9f2ee',
+      text:'분비 소낭이 세포막과 합쳐지면서 단백질이 세포 밖으로 나가요. 식물 세포에서는 세포벽 쪽으로 나가 세포벽에서 일하는 단백질도 있어요.' }
+  ];
+  const MISSIONS = [
+    { target:1, text:'분비 단백질 1개 분비하기', reward:'🍬 당 +8', kind:'한 번 받는 보상', apply:() => { state.sugar += 8; } },
+    { target:3, text:'분비 단백질 3개 분비하기', reward:'⚡ ATP +10', kind:'한 번 받는 보상', apply:() => { state.atp += 10; } },
+    { target:5, text:'분비 단백질 5개 분비하기', reward:'엽록체 당 생산 영구 +10%', kind:'계속 적용되는 보너스', apply:() => { state.perm.chloro += 0.1; } },
+    { target:8, text:'분비 단백질 8개 분비하기', reward:'마이토콘드리아 분해 속도 영구 +10%', kind:'계속 적용되는 보너스', apply:() => { state.perm.mito += 0.1; } }
+  ];
+  MISSIONS.forEach(m => m.done = false);
+  // 8개 이후: 5개마다 엽록체 +10% ↔ 마이토콘드리아 +10%를 번갈아 줘요 (13, 18, 23, 28 …)
+  const FIXED_N = MISSIONS.length;
+  const makeRepeat = k => {
+    const chloro = k % 2 === 0, target = 8 + 5 * (k + 1);
+    return { target, repeat:true, text:'분비 단백질 ' + target + '개 분비하기',
+      reward: chloro ? '엽록체 당 생산 영구 +10%' : '마이토콘드리아 분해 속도 영구 +10%',
+      kind:'계속 적용되는 보너스', done:false,
+      apply: chloro ? () => { state.perm.chloro += 0.1; } : () => { state.perm.mito += 0.1; } };
+  };
+  const repeatsDone = () => MISSIONS.filter(x => x.repeat && x.done).length;
+  const mission = { active:false, idx:0, running:false, prog:0 };
+  const totalCost = STEPS.reduce((a, s) => ({ atp:a.atp + s.atp, sugar:a.sugar + s.sugar }), { atp:0, sugar:0 });
+  const stepDur = s => Math.max(0.8, s.base / (1 + 0.15 * (state.lv[s.speedOrg] - 1)));
+
+  // 미션에서 쓸 당을 마이토콘드리아가 먼저 분해하지 않도록 남겨 두는 양
+  function sugarReserve() {
+    if (!mission.active) return 0;
+    for (let i = mission.running ? mission.idx + 1 : mission.idx; i < STEPS.length; i++) if (STEPS[i].sugar > 0) return STEPS[i].sugar;
+    return 0;
+  }
+
+  // 한 단계에 부족한 것 찾기
+  function lacksFor(i) {
+    const s = STEPS[i], out = [];
+    s.need.forEach(id => { if (state.lv[id] < 1) out.push({ type:'org', id }); });
+    if (state.sugar < s.sugar) out.push({ type:'sugar', short:s.sugar - state.sugar });
+    if (state.atp < s.atp) out.push({ type:'atp', short:s.atp - state.atp });
+    return out;
+  }
+  const josa = (n, a, b) => { const c = n.charCodeAt(n.length - 1) - 0xAC00; return c >= 0 && c % 28 !== 0 ? a : b; };
+  function hintFor(l) {
+    if (l.type === 'org') return '🔒 <b>' + byId(l.id).name + '</b>' + josa(byId(l.id).name, '이', '가') + ' 아직 없어요(레벨 0). ATP로 업그레이드해요.';
+    if (l.type === 'sugar') return '🍬 <b>재료(당)</b>가 ' + l.short + '개 모자라요. ☀️ 빛 받기로 엽록체가 당을 만들게 해요.';
+    let t = '⚡ <b>에너지(ATP)</b>가 ' + l.short + '개 모자라요. 당이 마이토콘드리아에서 ATP로 바뀌길 기다리거나 빛을 더 받아요.';
+    if (state.sugar > sugarCapacity() * 2) t += ' 당이 쌓여 있으니 <b>마이토콘드리아</b>를 올리면 ATP가 더 빨리 만들어져요.';
+    else if (state.sugar === 0) t += ' 당이 없으니 <b>엽록체</b>를 올리면 당이 더 많이 생겨요.';
+    return t;
+  }
+
+  // ----- 지도 그리기 -----
+  const C = { chloro:'#7ed957', mito:'#ff8f84', nucleus:'#9b7fe8', ribo:'#f2b134', rer:'#4ea6ec', golgi:'#ec5fa4', mem:'#2aa198', cyto:'#8fa38f' };
+  const mnode = (id, x, y, w, h, color, title, sub, open) => `<g class="node" data-id="${id}" ${open ? `data-open="1" tabindex="0" role="button" aria-label="${title} 설명 보기"` : ''}>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="${color}2b" stroke="${color}" stroke-width="4"/>
+    <text x="${x + w / 2}" y="${y + (sub ? 22 : h / 2 + 5)}" text-anchor="middle" font-size="14">${title}</text>
+    ${sub ? `<text x="${x + w / 2}" y="${y + 39}" text-anchor="middle" font-size="10.5" opacity=".75">${sub}</text>` : ''}
+    <text class="lvT" id="mlv-${id}" x="${x + w - 7}" y="${y + 13}" text-anchor="end" font-size="10" opacity=".8"></text></g>`;
+  const arrow = (id, d, color, mk, cls = 'flow') => `<path ${id ? `id="${id}"` : ''} class="${cls}" d="${d}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" marker-end="url(#${mk})"/>`;
+  const ves = (d, color, dur, delay) => `<circle r="5" fill="#fff" stroke="${color}" stroke-width="2.5">${mv(d, dur, delay)}</circle>`;
+  const marker = (id, color) => `<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="${color}"/></marker>`;
+  const BUS = 'M325 151V162H18V677';
+
+  function buildMap() {
+    const o = id => byId(id).color;
+    $('map').innerHTML = `<defs>${marker('mk-g', '#3f9e3a')}${marker('mk-p', '#e25c83')}${marker('mk-o', '#e08a1e')}${marker('mk-r', '#e0584b')}${marker('mk-b', '#2f7fd1')}${marker('mk-k', '#e0559a')}${marker('mk-x', '#8a968a')}</defs>
+      <text x="34" y="20" font-size="13">⚡ 에너지 흐름</text>
+      ${mnode('chloro', 10, 30, 100, 50, o('chloro'), '엽록체', '광합성 → 당', true)}
+      ${mnode('mito', 260, 30, 130, 50, o('mito'), '마이토콘드리아', '세포 호흡 → ATP', true)}
+      <g class="node" data-id="sugar"><rect x="144" y="43" width="82" height="24" rx="12" fill="#fff0f4" stroke="#ff8fab" stroke-width="3"/><text id="mapSugar" x="185" y="59" text-anchor="middle" font-size="11">🍬 당</text></g>
+      ${arrow('', 'M112 55H141', '#3f9e3a', 'mk-g')}${arrow('', 'M229 55H257', '#3f9e3a', 'mk-g')}${arrow('', 'M325 82V122', '#e08a1e', 'mk-o')}
+      ${dot('M112 55H141', '#ff8fab', 4, 1.6, 0)}${dot('M229 55H257', '#ff8fab', 4, 1.6, 0.8)}${dot('M325 82V122', '#ffb347', 4, 1.6, 0.4)}
+      <text x="10" y="102" font-size="10" opacity=".8">당은 세포질에서 분해된 뒤</text><text x="10" y="116" font-size="10" opacity=".8">마이토콘드리아로 들어가요</text>
+      <g class="node" data-id="atp"><rect x="265" y="125" width="120" height="26" rx="13" fill="#fff6e0" stroke="#ffb347" stroke-width="3"/><text id="mapAtp" x="325" y="142" text-anchor="middle" font-size="11">⚡ 세포 ATP</text></g>
+      <path d="${BUS}" class="flow" fill="none" stroke="#e08a1e" stroke-width="2.5" stroke-linecap="round"/>
+      ${dot(BUS, '#ffb347', 4, 5, 0)}${dot(BUS, '#ffb347', 4, 5, 1.7)}${dot(BUS, '#ffb347', 4, 5, 3.4)}
+      <text x="34" y="180" font-size="10" opacity=".8">주황 점선: ATP가 각 단계에 에너지를 줘요</text>
+
+      <text x="34" y="205" font-size="13">🧬 단백질 만들기 흐름</text>
+      ${[241, 351, 461, 571, 677].map(y => arrow('', `M18 ${y}H37`, '#e08a1e', 'mk-o', 'tick')).join('')}
+      ${mnode('nucleus', 40, 215, 160, 52, o('nucleus'), '핵', 'DNA → mRNA (전사)', true)}
+      ${arrow('P_nr', 'M120 269V323', '#e0584b', 'mk-r')}<text x="132" y="302" font-size="10">mRNA (핵공으로 나가요)</text>
+      ${mnode('ribo', 40, 325, 160, 52, o('ribo'), '라이보솜', 'mRNA 읽고 번역', true)}
+      ${arrow('P_rr', 'M120 379V433', '#2f7fd1', 'mk-b')}<text x="132" y="412" font-size="10">신호가 있는 단백질만 소포체로</text>
+      ${mnode('rer', 40, 435, 160, 52, o('rer'), '거친면 소포체', '붙어서 번역·접힘·초기 가공', true)}
+      ${arrow('P_re', 'M120 489V543', '#2f7fd1', 'mk-b')}<text x="132" y="522" font-size="10">소낭에 싸서 골지체로</text>
+      ${mnode('golgi', 40, 545, 160, 52, o('golgi'), '골지체', '가공·분류·포장', true)}
+      ${arrow('P_gm', 'M120 599V653', '#e0559a', 'mk-k')}<text x="132" y="632" font-size="10">분비 소낭 → 세포막과 융합</text>
+      ${mnode('membrane', 40, 655, 160, 44, C.mem, '세포막 → 세포 밖', '', false)}
+      <g fill="#f4a261" stroke="#c9822a">${[58, 84, 110, 136, 162, 186].map(x => `<circle cx="${x}" cy="436" r="3.2"/>`).join('')}</g>
+      ${dot('M120 269V323', '#e0584b', 4, 1.8, 0)}${dot('M120 379V433', '#2f7fd1', 4, 1.8, 0.5)}
+      ${ves('M120 489V543', '#2f7fd1', 1.8, 1)}${ves('M120 599V653', '#e0559a', 1.8, 0.3)}
+      ${arrow('', 'M202 351H232', '#8a968a', 'mk-x')}
+      ${mnode('cyto', 235, 325, 155, 52, C.cyto, '세포질 단백질', '소포체·골지체를 안 거쳐요', false)}
+      ${dot('M202 351H232', '#8a968a', 3.5, 1.6, 0)}
+
+      <g font-size="10.5">
+        <text x="235" y="438" font-size="12">범례</text>
+        <circle cx="242" cy="454" r="4" fill="#e0584b"/><text x="252" y="458">mRNA</text>
+        <circle cx="242" cy="474" r="4" fill="#2f7fd1"/><text x="252" y="478">단백질</text>
+        <circle cx="242" cy="494" r="5" fill="#fff" stroke="#2f7fd1" stroke-width="2.5"/><text x="252" y="498">소낭(운반 주머니)</text>
+        <path d="M236 514H249" class="flow" stroke="#e08a1e" stroke-width="2.5"/><text x="254" y="518">ATP 공급</text>
+        <path d="M236 534H249" class="flow" stroke="#8a968a" stroke-width="2.5"/><text x="254" y="538">소포체·골지체 안 거침</text>
+        <rect x="236" y="548" width="13" height="11" rx="3" fill="#fff" stroke="#f2b705" stroke-width="3"/><text x="254" y="558">지금 일하는 곳</text>
+        <rect x="236" y="568" width="13" height="11" rx="3" fill="#fff" stroke="#e5392d" stroke-width="2.5" stroke-dasharray="3 2"/><text x="254" y="578">부족한 것</text>
+        <text x="235" y="610" opacity=".85">분비·막 단백질 등이 주로</text><text x="235" y="624" opacity=".85">소포체 → 골지체 길을 가요</text>
+      </g>
+      <g id="packet" visibility="hidden"><rect id="pkR" height="18" rx="9" y="-9" stroke="#555" stroke-width="1.5"/><text id="pkT" y="4" text-anchor="middle" font-size="10.5" fill="#222" style="fill:#222"></text></g>`;
+    const svg = $('map');
+    svg.addEventListener('click', e => { const g = e.target.closest('.node[data-open]'); if (g) openInfo(g.dataset.id); });
+    svg.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const g = e.target.closest('.node[data-open]'); if (g) { e.preventDefault(); openInfo(g.dataset.id); } });
+  }
+
+  // ----- 화면 갱신 -----
+  const nodeEl = id => document.querySelector('#map .node[data-id="' + id + '"]');
+  const orgName = id => byId(id).name;
+  let toastTimer;
+  function say(t) { $('toast').textContent = t; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').textContent = ''; }, 5000); }
+
+  function renderCoop() {
+    // 지도
+    ORG.forEach(o => {
+      const g = nodeEl(o.id); if (!g) return;
+      g.classList.toggle('locked', state.lv[o.id] < 1);
+      $('mlv-' + o.id).textContent = state.lv[o.id] < 1 ? '🔒 Lv 0' : 'Lv ' + state.lv[o.id];
+    });
+    $('mapSugar').textContent = '🍬 당 ' + fmt(state.sugar);
+    $('mapAtp').textContent = '⚡ 세포 ATP ' + fmt(state.atp);
+
+    const i = mission.active ? mission.idx : 0, s = STEPS[i];
+    const waiting = mission.active && !mission.running;
+    const lacks = mission.running ? [] : lacksFor(i);
+    document.querySelectorAll('#map .node').forEach(g => { g.classList.remove('active', 'lack'); });
+    if (mission.running) s.nodes.forEach(id => nodeEl(id).classList.add('active'));
+    if (waiting) lacks.forEach(l => { const g = nodeEl(l.type === 'org' ? l.id : l.type); if (g) g.classList.add('lack'); });
+
+    // 목표
+    const m = MISSIONS.find(x => !x.done);
+    $('goal').innerHTML = m
+      ? '🎯 <b>미션</b> ' + m.text + ' (' + state.secreted + '/' + m.target + ')<br>🎁 보상: ' + m.reward
+      : '';
+
+    // 보상 목록
+    const nextM = MISSIONS.find(x => !x.done), gotN = MISSIONS.filter(x => x.done).length;
+    const nRep = repeatsDone(), fixedDone = MISSIONS.slice(0, FIXED_N).every(x => x.done);
+    $('rwSummary').textContent = '🎁 미션 보상 목록 (' + gotN + '번 받음)';
+    $('rwList').innerHTML = MISSIONS.slice(0, FIXED_N).map(x => {
+      const cls = x.done ? 'got' : x === nextM ? 'now' : 'lock';
+      const mark = x.done ? '✅' : x === nextM ? '🎯' : '🔒';
+      const st = x.done ? '받았어요' : x === nextM ? '진행 중 ' + state.secreted + '/' + x.target : '분비 단백질 ' + x.target + '개를 만들면 열려요';
+      return `<li class="rw ${cls}"><span>${mark}</span><span>${x.text} → ${x.reward}</span><small>${x.kind} · ${st}</small></li>`;
+    }).join('') + (() => {
+      const nx = fixedDone ? nextM : makeRepeat(0), first = !fixedDone;
+      const st = first ? '위 보상을 모두 받으면 시작돼요' : '지금까지 ' + nRep + '번 받음 · 다음: ' + nx.target + '개째 (' + nx.reward + ') · 진행 중 ' + state.secreted + '/' + nx.target;
+      return `<li class="rw ${first ? 'lock' : 'now'}"><span>${first ? '🔒' : '🔁'}</span><span>8개 이후 5개마다 → 엽록체 당 생산 +10% ↔ 마이토콘드리아 분해 속도 +10% 번갈아 (영구)</span><small>끝없이 반복 · ${st}</small></li>`;
+    })();
+    const permList = [];
+    if (state.perm.chloro) permList.push('엽록체 당 생산 +' + Math.round(state.perm.chloro * 100) + '%');
+    if (state.perm.mito) permList.push('마이토콘드리아 분해 속도 +' + Math.round(state.perm.mito * 100) + '%');
+    const oneList = MISSIONS.filter(x => x.done && x.kind === '한 번 받는 보상').map(x => x.reward);
+    const permCnt = MISSIONS.filter(x => x.done && x.kind !== '한 번 받는 보상').length;
+    $('rwSum').innerHTML = (gotN || permList.length)
+      ? '🏅 <b>지금 적용 중인 보너스</b>: ' + (permList.length ? permList.join(', ') + (state.quizPerfect ? ' (퀴즈 박사 보너스 포함)' : '') : '아직 없어요') + '<br>🎒 <b>이미 받은 보상</b>: ' + (oneList.length ? oneList.join(', ') : '아직 없어요')
+      : '아직 받은 보상이 없어요. 분비 단백질을 만들어 첫 보상을 받아 봐요!';
+
+    // 단계 목록
+    $('steps').innerHTML = STEPS.map((st, k) => {
+      const cls = mission.active ? (k < mission.idx ? 'done' : k === mission.idx ? (mission.running ? 'now' : 'wait') : '') : '';
+      const mark = cls === 'done' ? '✅' : cls === 'now' ? '▶️' : cls === 'wait' ? '⏳' : st.icon;
+      const cost = (st.sugar ? '🍬' + st.sugar + ' ' : '') + '⚡' + st.atp;
+      return `<li class="st ${cls}"><span>${mark}</span><span>${k + 1}. ${st.name}</span><small>${st.where} · 필요: ${cost}</small></li>`;
+    }).join('');
+
+    $('nowBox').innerHTML = mission.running
+      ? '<b>' + s.icon + ' ' + s.name + ' 중…</b><br>' + s.text
+      : mission.active ? '<b>⏳ ' + s.name + ' 준비 중</b><br>' + s.text
+      : '한 번 만들 때 총 <b>🍬 당 ' + totalCost.sugar + '개</b>와 <b>⚡ ATP ' + totalCost.atp + '개</b>가 들어요. 시작하면 단계마다 필요한 것을 내고 진행돼요.<br>예) 단백질은 핵 → 라이보솜 → 거친면 소포체 → 골지체 순서로 지나가요.';
+
+    // 필요한 것 카드 (이번에 필요한 단계 기준)
+    const orgOk = s.need.every(id => state.lv[id] >= 1);
+    const paid = mission.running;
+    const card = (ok, na, head, body) => `<div class="need ${na ? 'na' : ok ? 'ok' : 'no'}"><b>${head}</b>${body}</div>`;
+    $('needs').innerHTML =
+      card(orgOk, false, '소기관', (orgOk ? '✅ ' : '❌ ') + s.need.map(orgName).join(' + ') + (orgOk ? '' : ' 필요')) +
+      card(paid || state.sugar >= s.sugar, !s.sugar, '재료', s.sugar ? ((paid || state.sugar >= s.sugar) ? '✅' : '❌') + ' 🍬 당 ' + fmt(state.sugar) + '/' + s.sugar : '당 필요 없음') +
+      card(paid || state.atp >= s.atp, false, '에너지', ((paid || state.atp >= s.atp) ? '✅' : '❌') + ' ⚡ ATP ' + fmt(state.atp) + '/' + s.atp);
+
+    // 부족한 것 안내
+    const lackEl = $('lack');
+    if (mission.running) { lackEl.className = 'lack good'; lackEl.innerHTML = '✅ 재료와 에너지를 냈어요. 소기관이 일하는 중이에요!'; }
+    else if (lacks.length) {
+      lackEl.className = 'lack bad';
+      lackEl.innerHTML = '⚠️ <b>' + (mission.active ? '여기서 멈췄어요. ' : '시작하려면 ') + s.name + ' 단계에 부족한 것</b><ul>' + lacks.map(l => '<li>' + hintFor(l) + '</li>').join('') + '</ul>'
+        + (sugarReserve() ? '<small>🍬 당 ' + sugarReserve() + '개는 단백질 재료로 남겨 두고, 마이토콘드리아가 건드리지 않아요.</small>' : '');
+    } else { lackEl.className = 'lack good'; lackEl.innerHTML = '✅ 다음 단계(' + s.name + ')에 필요한 소기관·재료·에너지가 모두 준비됐어요!'; }
+
+    const btn = $('goBtn');
+    btn.disabled = mission.active;
+    btn.textContent = !mission.active ? '▶ 분비 단백질 만들기 시작' : mission.running ? '⚙️ 만드는 중 (' + (mission.idx + 1) + '/' + STEPS.length + '단계)' : '⏳ 부족한 것을 채우는 중…';
+  }
+
+  // ----- 미션 진행 -----
+  const hidePacket = () => $('packet').setAttribute('visibility', 'hidden');
+  function placePacket(s, p) {
+    const g = $('packet');
+    let x, y;
+    if (s.path) { const el = $(s.path), len = el.getTotalLength(), pt = el.getPointAtLength(len * (RM ? 0.5 : p)); x = pt.x; y = pt.y; }
+    else { x = 120; y = 655; }
+    const w = 16 + Array.from(s.token).reduce((a, c) => a + (c.charCodeAt(0) > 255 ? 10 : 6.5), 0);
+    $('pkR').setAttribute('x', -w / 2); $('pkR').setAttribute('width', w); $('pkR').setAttribute('fill', s.tokColor);
+    $('pkT').textContent = s.token;
+    g.setAttribute('transform', `translate(${x} ${y})`); g.setAttribute('visibility', 'visible');
+  }
+
+  function startMission() {
+    if (mission.active) return;
+    Object.assign(mission, { active:true, idx:0, running:false, prog:0 });
+    renderCoop();
+  }
+
+  function finishProtein() {
+    state.secreted += 1;
+    mission.active = false; mission.idx = 0; mission.running = false;
+    let msg = '🎉 분비 단백질 ' + state.secreted + '개째 완성! 세포 밖으로 나갔어요.';
+    MISSIONS.slice().forEach(m => { if (!m.done && state.secreted >= m.target) { m.done = true; m.apply(); msg += ' 🎁 미션 보상: ' + m.reward; if (m === MISSIONS[MISSIONS.length - 1]) MISSIONS.push(makeRepeat(repeatsDone())); } });
+    say(msg);
+    pop('golgi', '🎉 분비!');
+    render();
+  }
+
+  function stepMission(dt) {
+    if (!mission.active) return;
+    const s = STEPS[mission.idx];
+    if (!mission.running) {
+      if (lacksFor(mission.idx).length) return;
+      state.atp -= s.atp; state.sugar -= s.sugar;
+      mission.running = true; mission.prog = 0;
+      if (s.atp) pop(s.nodes[0], '−' + s.atp + ' ⚡');
+      if (s.sugar) pop(s.nodes[0], '−' + s.sugar + ' 🍬');
+      placePacket(s, 0);
+      render();
+      return;
+    }
+    mission.prog += dt / stepDur(s);
+    placePacket(s, Math.min(1, mission.prog));
+    $('barFill').style.width = Math.min(100, mission.prog * 100) + '%';
+    if (mission.prog >= 1) {
+      mission.running = false; mission.idx += 1; mission.prog = 0;
+      hidePacket(); $('barFill').style.width = '0';
+      if (mission.idx >= STEPS.length) finishProtein(); else render();
+    }
+  }
+
+  let lastT = performance.now(), acc = 0;
+  function loop(now) {
+    const dt = Math.min(0.25, (now - lastT) / 1000); lastT = now;
+    stepMission(dt);
+    acc += dt; if (acc > 0.5) { acc = 0; renderCoop(); }  // 모자란 재료·에너지 표시를 가끔 새로 고쳐요
+    requestAnimationFrame(loop);
+  }
+
+  buildMap();
+  $('goBtn').addEventListener('click', startMission);
+  requestAnimationFrame(loop);
+
+  buildCards();
+  render();
+  // ===== 확인 퀴즈 =====
+  // 선택지마다 why(정답이면 정답인 이유, 오답이면 틀린 이유)를 달았어요.
+  const QUIZ = [
+    { goal:'목표 1', topic:'소기관 6종의 구조와 기능 · 핵, 라이보솜, 거친면 소포체, 골지체 비교',
+      q:`단백질 생산 라인의 소기관들을 비교했어요. 소기관의 구조와 기능을 바르게 짝지은 것은?`,
+      review:['nucleus', 'ribo', 'rer', 'golgi'],
+      opts:[
+        { id:'a', ok:true, t:`핵 — 이중막인 핵막에 싸여 있고 핵공이 있어요. DNA의 정보를 mRNA로 옮겨 적는 전사가 일어나고, mRNA는 핵공을 지나 세포질로 나가요.`,
+          why:`핵은 핵막(이중막)과 핵공을 가진 소기관이에요. 핵의 DNA는 핵 안에 있고, 전사로 만들어진 mRNA가 핵공을 통해 세포질로 나가 단백질 합성에 쓰여요.` },
+        { id:'b', ok:false, t:`라이보솜 — 이중막으로 싸인 알갱이이고, 지질을 합성해요.`,
+          why:`라이보솜은 막이 없는 아주 작은 알갱이(rRNA와 단백질)예요. 하는 일도 지질 합성이 아니라, mRNA의 정보를 읽어 아미노산을 이어 붙여 단백질을 합성하는 번역이에요.` },
+        { id:'c', ok:false, t:`거친면 소포체 — 소포체에서 온 소낭을 받아 단백질을 종류별로 분류하고, 분비 소낭에 포장해 세포막 쪽으로 보내요.`,
+          why:`분류하고 분비 소낭에 포장하는 일은 골지체의 역할이에요. 거친면 소포체에서는 붙어 있는 라이보솜이 만든 단백질이 안으로 들어와 접히고 초기 가공을 받은 뒤, 소낭에 싸여 골지체로 가요.` },
+        { id:'d', ok:false, t:`골지체 — 바깥면에 라이보솜이 붙어 있어서 단백질을 직접 합성해요.`,
+          why:`라이보솜이 붙어 있어 ‘거칠어’ 보이는 것은 거친면 소포체예요. 골지체는 납작한 주머니가 쌓인 구조로, 소포체에서 온 단백질을 더 가공하고 분류·포장해요.` }
+      ] },
+
+    { goal:'목표 1 · 2', topic:'소기관 6종의 구조와 기능 · 엽록체와 마이토콘드리아 비교',
+      q:`엽록체와 마이토콘드리아를 비교한 설명으로 옳은 것은?`,
+      review:['chloro', 'mito'],
+      opts:[
+        { id:'a', ok:true, t:`두 소기관 모두 이중막으로 싸여 있어요. 엽록체는 빛에너지를 이용해 CO₂로 당 같은 유기물을 합성하고, 마이토콘드리아는 유기물을 분해하는 세포 호흡으로 ATP를 만들어요.`,
+          why:`엽록체와 마이토콘드리아는 둘 다 이중막 구조예요. 엽록체는 빛에너지로 유기물을 합성(광합성)하고, 마이토콘드리아는 유기물을 분해해 ATP를 만드는(세포 호흡) 서로 반대 방향의 일을 해요.` },
+        { id:'b', ok:false, t:`엽록체는 식물 세포에만 있고, 마이토콘드리아는 동물 세포에만 있어요.`,
+          why:`엽록체가 식물 세포에 있다는 부분은 맞지만, 마이토콘드리아는 동물 세포뿐 아니라 식물 세포에도 있어요. 식물 세포에는 엽록체와 마이토콘드리아가 함께 있어요.` },
+        { id:'c', ok:false, t:`엽록체는 CO₂를 내보내며 호흡하고, 마이토콘드리아는 CO₂를 써서 당을 합성해요.`,
+          why:`두 소기관의 일이 서로 바뀌었어요. CO₂를 써서 당을 합성하는 곳은 엽록체(스트로마)이고, CO₂를 내보내는 곳이 마이토콘드리아(바탕질의 시트르산 회로)예요.` },
+        { id:'d', ok:false, t:`엽록체가 만든 ATP가 세포 전체의 에너지로 충분하므로, 식물 세포에는 마이토콘드리아가 필요 없어요.`,
+          why:`엽록체의 ATP는 주로 엽록체 안에서 유기물을 합성하는 데 쓰여요. 빛이 없을 때나 뿌리처럼 광합성을 하지 않는 세포에서도 에너지가 필요하기 때문에, 식물 세포도 마이토콘드리아의 세포 호흡으로 ATP를 만들어요.` }
+      ] },
+
+    { goal:'목표 2', topic:'마이토콘드리아의 내부 구조와 기능 · 내막과 바탕질',
+      q:`마이토콘드리아(미토콘드리아)의 바탕질과 내막이 하는 일을 바르게 연결한 것은?`,
+      review:['mito'],
+      opts:[
+        { id:'a', ok:true, t:`바탕질에서는 시트르산 회로로 당이 분해된 물질이 더 분해되면서 CO₂와 전자가 나와요. 그 전자가 내막의 전자 전달계로 가고, 내막의 ATP 합성효소가 ATP를 만들어요.`,
+          why:`바탕질(내막 안쪽 공간)에서는 시트르산 회로가 일어나 CO₂와 전자가 나오고, 그 전자가 내막의 전자 전달계를 따라 이동하며 ATP 합성효소가 ATP를 만들어요. 전자는 마지막에 산소와 만나 물이 돼요. 내막이 안으로 주름져 있으면 표면적이 넓어져 전자 전달계와 ATP 합성효소가 많이 자리 잡을 수 있어요.` },
+        { id:'b', ok:false, t:`바탕질에서 빛에너지로 ATP를 만들고, 내막에서 CO₂로 당을 합성해요.`,
+          why:`빛에너지를 쓰고 CO₂로 당을 합성하는 것은 엽록체의 광합성이에요. 마이토콘드리아는 빛이 아니라 유기물이 분해될 때 나오는 에너지로 ATP를 만들고, CO₂는 오히려 내보내요.` },
+        { id:'c', ok:false, t:`내막이 안으로 주름진 것은 ATP 생산과 관계가 없고, 막을 접어 넣은 모양일 뿐이에요.`,
+          why:`내막의 주름은 ATP 생산에 유리해요. 막의 표면적이 넓어지면 전자 전달계와 ATP 합성효소가 더 많이 들어갈 수 있어서 ATP를 많이 만들 수 있어요.` },
+        { id:'d', ok:false, t:`내막에서 시트르산 회로가 일어나고, 바탕질에서 전자 전달계와 ATP 합성효소가 일해요.`,
+          why:`장소가 서로 바뀌었어요. 교과 수준에서는 시트르산 회로가 바탕질에서, 전자 전달계와 ATP 합성효소가 내막에서 일하는 것으로 배워요.` }
+      ] },
+
+    { goal:'목표 2', topic:'엽록체의 내부 구조와 기능 · 타이라코이드막과 스트로마',
+      q:`엽록체의 타이라코이드막(틸라코이드막)과 스트로마가 하는 일을 바르게 연결한 것은?`,
+      review:['chloro'],
+      opts:[
+        { id:'a', ok:true, t:`타이라코이드막에서는 엽록소가 빛에너지를 흡수해 물이 분해되고 산소가 나오며, ATP와 NADPH가 만들어져요. 스트로마에서는 이 ATP와 NADPH를 이용해 CO₂로 당 같은 유기물을 합성해요.`,
+          why:`빛을 받는 반응은 엽록소가 있는 타이라코이드막에서 일어나 산소, ATP, NADPH가 만들어져요. 이 ATP와 NADPH가 스트로마로 가서, CO₂를 당 같은 유기물로 바꾸는 데 쓰여요.` },
+        { id:'b', ok:false, t:`스트로마에서 빛을 흡수해 산소를 내보내고, 타이라코이드막에서 CO₂로 당을 합성해요.`,
+          why:`두 부분의 일이 서로 바뀌었어요. 빛을 흡수하고 산소를 내보내는 곳은 타이라코이드막이고, CO₂로 당을 합성하는 곳은 스트로마예요.` },
+        { id:'c', ok:false, t:`광합성에서 나오는 산소는 스트로마에서 CO₂가 분해될 때 생겨요.`,
+          why:`광합성에서 나오는 산소는 CO₂가 아니라 물이 분해될 때 생겨요(타이라코이드막). CO₂는 스트로마에서 당을 만드는 재료로 쓰여요.` },
+        { id:'d', ok:false, t:`엽록소는 스트로마에 들어 있어서, 스트로마 때문에 엽록체가 초록색으로 보여요.`,
+          why:`엽록소는 스트로마가 아니라 타이라코이드막에 들어 있어요. 스트로마는 타이라코이드 바깥을 채운 액체 부분으로, 여기서 당 합성이 일어나요.` }
+      ] },
+
+    { goal:'목표 3', topic:'소기관의 협력 · 에너지 흐름 (당 → ATP → 세포 활동)',
+      q:`식물 세포에서 단백질을 합성하는 데 필요한 에너지(ATP)가 마련되는 과정을, 소기관의 협력으로 바르게 설명한 것은?`,
+      review:['chloro', 'mito', 'ribo'],
+      flow:[
+        { name:'엽록체', org:'chloro', role:`빛에너지로 CO₂와 물에서 당을 합성해요(광합성).` },
+        { name:'마이토콘드리아', org:'mito', role:`당은 세포질에서 먼저 분해되고, 그 산물이 마이토콘드리아로 들어가 산소를 쓰며 더 분해돼요(세포 호흡). 이때 ATP가 만들어져요.` },
+        { name:'라이보솜 등', org:'ribo', role:`마이토콘드리아가 만든 ATP를 써서 단백질 합성 같은 세포 활동을 해요.` }
+      ],
+      game:`게임에서는 이 과정을 ‘당 1개 → ATP 1개’로 단순화했어요. 실제로는 포도당 1분자에서 ATP가 훨씬 많이(약 30개 안팎) 만들어져요.`,
+      opts:[
+        { id:'a', ok:true, t:`엽록체가 광합성으로 만든 당이 세포 호흡의 재료가 되고, 마이토콘드리아에서 만들어진 ATP가 라이보솜의 단백질 합성 같은 세포 활동에 쓰여요.`,
+          why:`‘엽록체(당 합성) → 세포 호흡(마이토콘드리아에서 ATP 생산) → ATP로 단백질 합성’으로 이어지는 흐름이에요. 에너지를 만드는 소기관과 쓰는 소기관이 서로 연결돼 있어요.` },
+        { id:'b', ok:false, t:`마이토콘드리아가 CO₂와 물로 당을 만들고, 그 에너지로 엽록체가 ATP를 만들어 단백질 합성에 써요.`,
+          why:`두 소기관의 일이 거꾸로예요. CO₂와 물로 당을 만드는 곳이 엽록체이고, 당을 분해해 ATP를 만드는 곳이 마이토콘드리아예요.` },
+        { id:'c', ok:false, t:`라이보솜이 당을 분해해 ATP를 만들고, 그 ATP를 핵으로 보내 단백질을 합성해요.`,
+          why:`라이보솜은 ATP를 만드는 곳이 아니라, ATP 같은 에너지를 써서 단백질을 합성하는 곳이에요. 단백질 합성(번역)도 핵이 아니라 라이보솜에서 일어나고, 핵은 DNA를 보관하며 전사를 해요.` },
+        { id:'d', ok:false, t:`빛이 없으면 당이 하나도 없어서, 식물 세포는 ATP를 전혀 만들 수 없어요.`,
+          why:`마이토콘드리아의 세포 호흡은 빛이 직접 필요하지 않아요. 낮에 만들어 저장해 둔 유기물이나 다른 곳에서 옮겨 온 당을 쓰면 빛이 없어도 ATP를 만들 수 있어요. 뿌리 세포는 광합성을 하지 않아도 이렇게 ATP를 얻어요.` }
+      ] },
+
+    { goal:'목표 3', topic:'소기관의 협력 · 분비 단백질이 만들어져 나가는 길',
+      q:`식물 세포가 분비 단백질을 만들어 세포 밖으로 내보내는 과정에서 소기관들의 협력을 바르게 설명한 것은?`,
+      review:['nucleus', 'ribo', 'rer', 'golgi', 'mito'],
+      flow:[
+        { name:'핵', org:'nucleus', role:`DNA의 유전 정보를 mRNA로 옮겨 적어요(전사). mRNA는 핵공을 지나 세포질로 나가요.` },
+        { name:'라이보솜', org:'ribo', role:`mRNA의 정보를 읽어 아미노산을 이어 붙여요(번역). 분비 단백질은 소포체에 붙은 라이보솜이 만들어, 합성되는 단백질이 소포체 안으로 들어가요.` },
+        { name:'거친면 소포체', org:'rer', role:`단백질이 접히고 초기 가공을 받아요. 그다음 소낭에 싸여 골지체로 운반돼요.` },
+        { name:'골지체', org:'golgi', role:`단백질을 더 가공하고 종류별로 분류해 분비 소낭에 포장해요.` },
+        { name:'세포막', org:null, role:`분비 소낭이 세포막과 합쳐지면서 단백질이 세포 밖(식물 세포는 세포벽 쪽)으로 나가요.` },
+        { name:'마이토콘드리아', org:'mito', role:`세포 호흡으로 만든 ATP를 공급해요. 단백질 합성, 소낭 운반 같은 여러 단계에서 에너지가 쓰여요(GTP 같은 다른 에너지 분자도 함께 써요).` }
+      ],
+      game:`게임의 🧪 분비 단백질 미션이 바로 이 흐름이에요. 단계마다 드는 당·ATP 개수와 시간은 게임용 숫자예요.`,
+      opts:[
+        { id:'a', ok:true, t:`핵에서 전사된 mRNA를 소포체에 붙은 라이보솜이 번역해 단백질이 소포체 안으로 들어가요. 소포체에서 접힌 단백질이 소낭으로 골지체에 가서 가공·포장된 뒤 세포 밖으로 분비돼요. 이 과정에는 마이토콘드리아가 만든 ATP가 쓰여요.`,
+          why:`전사(핵) → 번역(소포체에 붙은 라이보솜) → 접힘·초기 가공(거친면 소포체) → 가공·분류·포장(골지체) → 분비(세포막)의 순서가 맞아요. 이 흐름에 필요한 에너지는 마이토콘드리아의 ATP가 대 줘요.` },
+        { id:'b', ok:false, t:`골지체가 먼저 단백질을 포장한 뒤, 그 단백질이 거친면 소포체로 가서 합성돼요.`,
+          why:`순서가 거꾸로예요. 단백질은 먼저 라이보솜에서 합성되어 소포체로 들어가고, 소포체를 거친 뒤에야 골지체에서 가공·포장돼요. 골지체는 단백질을 합성하는 곳이 아니에요.` },
+        { id:'c', ok:false, t:`DNA가 핵공을 통해 세포질로 나가 라이보솜에서 직접 읽혀 단백질이 합성돼요.`,
+          why:`핵의 DNA는 핵 안에 보관돼요. 세포질로 나가는 것은 DNA에서 전사된 mRNA이고, 라이보솜은 이 mRNA를 읽어 단백질을 합성해요.` },
+        { id:'d', ok:false, t:`세포 안에서 만들어지는 모든 단백질은 반드시 거친면 소포체와 골지체를 거쳐 가공·운반돼요.`,
+          why:`모든 단백질이 그런 것은 아니에요. 세포질에서 쓰이는 단백질(예: 세포질에서 일하는 효소)은 세포질의 라이보솜에서 만들어져 소포체와 골지체를 거치지 않아요. 분비 단백질, 막 단백질, 리소좀(식물 세포에서는 주로 액포)으로 가는 단백질 등이 주로 이 길을 가요.` }
+      ] }
+  ];
+
+  // ===== 퀴즈 보상 =====
+  // 한 번에 맞히면 전부, 재도전해서 맞히면 절반, 해설을 보고 넘어가면 없어요.
+  // 문제마다 한 번만 받을 수 있어서(다시 풀어도 같은 보상을 또 받지 않아요), 퀴즈를 반복해도 자원을 무한히 얻을 수 없어요.
+  const QUIZ_RW = [
+    { sugar:6,  atp:4  },   // 1. 단백질 라인 소기관 비교
+    { sugar:4,  atp:6  },   // 2. 엽록체·마이토콘드리아 비교
+    { sugar:0,  atp:12 },   // 3. 마이토콘드리아 내부 구조 → ATP
+    { sugar:12, atp:0  },   // 4. 엽록체 내부 구조 → 당
+    { sugar:8,  atp:8  },   // 5. 에너지 협력
+    { sugar:10, atp:10 }    // 6. 분비 단백질 협력
+  ];
+  const QUIZ_PERFECT = { chloro:0.1, mito:0.1 };   // 6문제 모두 한 번에 맞히면: 영구 보너스(한 번만)
+  const qClaim = QUIZ.map(() => 0);                 // 0 못 받음 | 1 절반 받음 | 2 전부 받음
+  const rwAmt = (k, lvl) => ({ sugar: lvl === 2 ? QUIZ_RW[k].sugar : Math.floor(QUIZ_RW[k].sugar / 2), atp: lvl === 2 ? QUIZ_RW[k].atp : Math.floor(QUIZ_RW[k].atp / 2) });
+  const rwTxt = r => [r.sugar ? '🍬 당 +' + r.sugar : '', r.atp ? '⚡ ATP +' + r.atp : ''].filter(Boolean).join(' · ') || '없음';
+  function grantQuizReward(k, lvl) {          // lvl 1 재도전 | 2 한 번에
+    const before = qClaim[k] ? rwAmt(k, qClaim[k]) : { sugar:0, atp:0 };
+    const now = rwAmt(k, lvl);
+    const give = qClaim[k] >= lvl ? { sugar:0, atp:0 } : { sugar: now.sugar - before.sugar, atp: now.atp - before.atp };
+    if (qClaim[k] < lvl) qClaim[k] = lvl;
+    state.sugar += give.sugar; state.atp += give.atp;
+    let perfect = false;
+    if (!state.quizPerfect && quiz.status.every(s => s === 'first')) {
+      state.quizPerfect = true; perfect = true;
+      state.perm.chloro += QUIZ_PERFECT.chloro; state.perm.mito += QUIZ_PERFECT.mito;
+    }
+    return { give, perfect };
+  }
+  const quizBank = () => {
+    const got = qClaim.filter(Boolean).length;
+    const tot = QUIZ_RW.reduce((a, r, k) => { if (qClaim[k]) { const m = rwAmt(k, qClaim[k]); a.sugar += m.sugar; a.atp += m.atp; } return a; }, { sugar:0, atp:0 });
+    return `<div class="qz-bank">🎁 <b>퀴즈 보상</b> · 보상을 받은 문제 ${got} / ${QUIZ.length}${got ? ' · 지금까지 받은 것: ' + rwTxt(tot) : ''}<br>🏅 <b>퀴즈 박사 보너스</b>: ${state.quizPerfect ? '✅ 받았어요 (엽록체 당 생산 +10%, 마이토콘드리아 분해 속도 +10%)' : '6문제를 모두 한 번에 맞히면 엽록체 당 생산 +10%, 마이토콘드리아 분해 속도 +10% (영구, 한 번만)'}</div>`;
+  };
+
+  const quiz = { i:0, order:[], wrong:[], status:[], gain:[], phase:'ask', last:null, done:false };
+  const QL = 'ABCD';
+  const qShuffle = a => { const r = a.slice(); for (let k = r.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); const t = r[k]; r[k] = r[j]; r[j] = t; } return r; };
+  function quizReset() {
+    quiz.i = 0; quiz.done = false; quiz.phase = 'ask'; quiz.last = null;
+    quiz.order = QUIZ.map(q => qShuffle(q.opts.map(o => o.id)));
+    quiz.wrong = QUIZ.map(() => []);
+    quiz.status = QUIZ.map(() => null);   // 'first' 한 번에 | 'retry' 재도전 | 'peek' 해설 보고
+    quiz.gain = QUIZ.map(() => null);
+  }
+  const orgBtns = ids => '<div class="qz-rev"><span>💡 관련 소기관 설명을 다시 확인해 보세요</span>' + ids.map(id => `<button type="button" class="qz-btn" data-act="review" data-org="${id}">${byId(id).name} 보기</button>`).join('') + '</div>';
+
+  function renderQuiz(focusSel) {
+    const box = $('quizBox');
+    if (quiz.done) { renderQuizResult(focusSel); return; }
+    const i = quiz.i, q = QUIZ[i], order = quiz.order[i], ph = quiz.phase;
+    const optOf = id => q.opts.find(o => o.id === id);
+    const rwLine = qClaim[i] === 2 ? `<span class="qz-rwline got">🎁 이 문제의 보상을 모두 받았어요 (${rwTxt(rwAmt(i, 2))})</span>`
+      : `<span class="qz-rwline">🎁 이 문제 보상: 한 번에 맞히면 ${rwTxt(rwAmt(i, 2))} · 재도전하면 ${rwTxt(rwAmt(i, 1))}${qClaim[i] === 1 ? ' (절반은 이미 받았어요)' : ''}</span>`;
+    const letter = id => QL[order.indexOf(id)];
+    const dots = QUIZ.map((_, k) => `<i class="${quiz.status[k] ? 'on' : ''} ${k === i ? 'cur' : ''}"></i>`).join('');
+    const optHtml = order.map(id => {
+      const o = optOf(id), was = quiz.wrong[i].includes(id);
+      let cls = '', mk = '';
+      if (ph === 'solved') { cls = o.ok ? 'right' : 'dim'; mk = o.ok ? '✅ 정답' : ''; }
+      else if (was) { cls = 'wrong'; mk = '❌ 틀림'; }
+      else if (ph === 'wrong') cls = 'dim';
+      const dis = ph !== 'ask' || was;
+      return `<button type="button" class="qz-opt ${cls}" data-act="opt" data-id="${id}" ${dis ? 'disabled' : ''}><span class="qz-let" aria-hidden="true">${letter(id)}</span><span class="qz-txt"><span class="sr-only" style="position:absolute;left:-9999px">선택지 ${letter(id)}. </span>${o.t}</span><span class="qz-mk">${mk}</span></button>`;
+    }).join('');
+
+    let extra = '';
+    if (ph === 'wrong') {
+      const o = optOf(quiz.last), tries = quiz.wrong[i].length;
+      extra = `<div class="qz-fb" id="qzFb" tabindex="-1" role="status"><div class="qz-head">❌ 아직 아니에요. 고른 선택지 ${letter(o.id)}가 틀린 이유</div><p>${o.why}</p>${orgBtns(q.review)}
+        <div class="qz-acts"><button type="button" class="qz-btn main" data-act="retry">🔁 다시 골라 보기</button>${tries >= 2 ? '<button type="button" class="qz-btn ghost" data-act="reveal">📖 정답과 해설 보기</button>' : ''}</div></div>`;
+    } else if (ph === 'solved') {
+      const right = q.opts.find(o => o.ok), peek = quiz.status[i] === 'peek';
+      const wrongs = order.map(optOf).filter(o => !o.ok);
+      const g = quiz.gain[i];
+      const gainHtml = !g ? '' : g.peek ? `<div class="qz-sec gain"><b>🎁 보상</b>해설을 보고 넘어가서 이번에는 보상이 없어요. 다시 풀어서 맞히면 받을 수 있어요.</div>`
+        : `<div class="qz-sec gain"><b>🎁 보상</b>${(g.give.sugar || g.give.atp) ? '받은 보상: <b style="display:inline;color:inherit">' + rwTxt(g.give) + '</b>!' + (quiz.status[i] === 'retry' ? ' (재도전이라 절반이에요. 한 번에 맞히면 전부 받아요.)' : '') : '이 문제의 보상은 이미 받았어요. 같은 문제로는 보상을 또 받지 않아요.'}${g.perfect ? '<br>🏅 <b style="display:inline;color:inherit">퀴즈 박사!</b> 6문제를 모두 한 번에 맞혀서 엽록체 당 생산 +10%, 마이토콘드리아 분해 속도 +10% 보너스를 받았어요.' : ''}</div>`;
+      const flow = q.flow ? `<div class="qz-sec"><b>🤝 소기관이 협력하는 과정</b><ol class="qz-flow">${q.flow.map(f => `<li><span class="qz-fo" style="--c:${f.org ? byId(f.org).color : C.mem}">${f.name}</span><span>${f.role}</span></li>`).join('')}</ol></div>` : '';
+      const game = q.game ? `<div class="qz-sec game"><b>🎮 게임 속 단순화</b>${q.game}</div>` : '';
+      extra = `<div class="qz-ex" id="qzEx" tabindex="-1" role="status"><div class="qz-head">${peek ? '📖 정답은 ' + letter(right.id) + '예요. 해설을 읽고 넘어가요' : '✅ 정답이에요! (' + letter(right.id) + ')'}</div>
+        ${gainHtml}<div class="qz-sec"><b>왜 정답일까요?</b>${right.why}</div>${flow}
+        <div class="qz-sec"><b>다른 선택지는 왜 틀렸을까요?</b><ul>${wrongs.map(o => `<li><span class="qz-wl">${letter(o.id)}</span>${o.t}<i>→ ${o.why}</i></li>`).join('')}</ul></div>${game}${orgBtns(q.review)}
+        <div class="qz-acts"><button type="button" class="qz-btn main" data-act="next">${i === QUIZ.length - 1 ? '🏁 결과 보기' : '다음 문제 →'}</button></div></div>`;
+    }
+
+    box.innerHTML = quizBank() + `<div class="qz-top"><span>문제 ${i + 1} / ${QUIZ.length}</span><span class="qz-goal">🎯 ${q.goal}</span><span class="qz-dots" aria-hidden="true">${dots}</span></div>
+      <div class="bar" role="progressbar" aria-label="퀴즈 진행" aria-valuemin="0" aria-valuemax="${QUIZ.length}" aria-valuenow="${quiz.status.filter(Boolean).length}"><i style="width:${quiz.status.filter(Boolean).length / QUIZ.length * 100}%"></i></div>
+      <div class="qz-topic">${q.topic}</div>${rwLine}
+      <h4 class="qz-q" id="qzQ" tabindex="-1">${q.q}</h4>
+      <div class="qz-opts" role="group" aria-labelledby="qzQ">${optHtml}</div>${extra}`;
+    if (focusSel) { const el = box.querySelector(focusSel); if (el) el.focus({ preventScroll:false }); }
+  }
+
+  function renderQuizResult(focusSel) {
+    const first = quiz.status.filter(s => s === 'first').length;
+    const rows = QUIZ.map((q, k) => {
+      const s = quiz.status[k], cls = s === 'first' ? 'ok' : s === 'retry' ? 're' : 'pk';
+      const lab = s === 'first' ? '✅ 한 번에 맞혔어요' : s === 'retry' ? '🔁 다시 도전해서 맞혔어요' : '📖 해설을 보고 넘어갔어요';
+      return `<li class="${cls}"><b>${k + 1}번</b> · ${q.topic}<small>${lab} · 🎁 ${qClaim[k] === 2 ? '보상을 모두 받음' : qClaim[k] === 1 ? '절반만 받음 (한 번에 맞히면 나머지도 받아요)' : '아직 못 받음'}</small>${s !== 'first' ? orgBtns(q.review) : ''}</li>`;
+    }).join('');
+    const msg = first === QUIZ.length ? '🎉 모든 문제를 한 번에 맞혔어요! 소기관의 구조·기능·협력을 아주 잘 이해했어요.'
+      : first >= 4 ? '👍 잘했어요! 표시된 문제의 소기관 설명을 다시 읽고 한 번 더 도전해 봐요.'
+      : '🌱 괜찮아요! 소기관 설명과 협력 지도를 다시 보고 퀴즈를 다시 풀어 봐요. 선택지 순서는 바뀌어요.';
+    const perfLine = state.quizPerfect ? '<div class="qz-perfect got">🏅 <b>퀴즈 박사 보너스</b>를 받았어요! 엽록체 당 생산 +10%, 마이토콘드리아 분해 속도 +10%가 계속 적용돼요.</div>'
+      : '<div class="qz-perfect">🏅 6문제를 모두 <b>한 번에</b> 맞히면 <b>퀴즈 박사 보너스</b>(엽록체 당 생산 +10%, 마이토콘드리아 분해 속도 +10%)를 받아요. 선택지 순서가 바뀌니 다시 도전해 보세요.</div>';
+    $('quizBox').innerHTML = quizBank() + `<div class="qz-res"><h4 id="qzResT" tabindex="-1">🏁 퀴즈 끝!</h4><p class="qz-score">한 번에 맞힌 문제: <b>${first} / ${QUIZ.length}</b></p><p>${msg}</p>${perfLine}<ul>${rows}</ul>
+      <div class="qz-acts"><button type="button" class="qz-btn main" data-act="restart">🔄 퀴즈 다시 풀기</button></div></div>`;
+    if (focusSel) { const el = $('quizBox').querySelector(focusSel); if (el) el.focus(); }
+  }
+
+  $('quizBox').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    const act = b.dataset.act, i = quiz.i;
+    if (act === 'review') { openInfo(b.dataset.org); return; }
+    if (act === 'opt' && quiz.phase === 'ask') {
+      const o = QUIZ[i].opts.find(x => x.id === b.dataset.id);
+      if (o.ok) {
+        quiz.status[i] = quiz.wrong[i].length ? 'retry' : 'first'; quiz.phase = 'solved';
+        const r = grantQuizReward(i, quiz.status[i] === 'first' ? 2 : 1);
+        quiz.gain[i] = r;
+        const parts = [];
+        if (r.give.sugar || r.give.atp) parts.push('🎁 퀴즈 보상: ' + rwTxt(r.give));
+        if (r.perfect) parts.push('🏅 퀴즈 박사 보너스! 엽록체 +10%, 마이토콘드리아 +10%');
+        if (parts.length) say('📝 정답! ' + parts.join(' '));
+        render(); renderQuiz('#qzEx');
+      }
+      else { quiz.wrong[i].push(o.id); quiz.last = o.id; quiz.phase = 'wrong'; renderQuiz('#qzFb'); }
+    } else if (act === 'retry') { quiz.phase = 'ask'; renderQuiz('.qz-opt:not(:disabled)'); }
+    else if (act === 'reveal') { quiz.status[i] = 'peek'; quiz.phase = 'solved'; quiz.gain[i] = { peek:true }; renderQuiz('#qzEx'); }
+    else if (act === 'next') {
+      if (i === QUIZ.length - 1) { quiz.done = true; renderQuiz('#qzResT'); }
+      else { quiz.i += 1; quiz.phase = 'ask'; quiz.last = null; renderQuiz('#qzQ'); }
+    } else if (act === 'restart') { quizReset(); renderQuiz('#qzQ'); }
+  });
+  $('quizJump').addEventListener('click', () => { $('quiz').scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block:'start' }); });
+  quizReset(); renderQuiz();
+  window.__quiz = { QUIZ, quiz, qClaim, QUIZ_RW };
+
+  // ===== 게임 목표 / 타이머 / 클리어 =====
+  function mmss(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }   // render()가 먼저 불리므로 함수 선언으로 둬요
+  function renderGoal() {
+    const goal = CONFIG.goalAtp, now = Math.min(state.atpTotal, goal), pct = Math.min(100, Math.floor(state.atpTotal / goal * 100));
+    $('goalNow').textContent = fmt(state.atpTotal);
+    $('goalMax').textContent = fmt(goal);
+    $('goalPct').textContent = pct;
+    $('goalFill').style.width = (now / goal * 100) + '%';
+    $('goalBar').setAttribute('aria-valuenow', pct);
+    $('goalBar').setAttribute('aria-valuetext', pct + '퍼센트');
+    $('goalTime').textContent = state.cleared ? '🏆 ' + mmss(state.clearSec) + ' 만에 달성' : '⏱ ' + mmss(state.playSec);
+    $('goalBox').classList.toggle('done', state.cleared);
+  }
+  setInterval(() => {
+    if (!state.started || state.cleared || document.hidden) return;
+    if (document.querySelector('dialog[open]')) return;   // 설명 창을 읽는 동안은 시간이 가지 않아요
+    state.playSec += 1; renderGoal();
+  }, 1000);
+
+  function openClear() {
+    const d = $('clear');
+    const quizRight = qClaim.filter(Boolean).length;
+    const lvTxt = ORG.filter(o => state.lv[o.id] > 0).map(o => o.name + ' Lv.' + state.lv[o.id]).join(' · ');
+    $('clearLead').textContent = '마이토콘드리아가 ATP를 ' + fmt(CONFIG.goalAtp) + '개 만들었어요! 식물 세포 공장이 척척 돌아가요.';
+    $('clearStats').innerHTML =
+      `<div>⏱ 걸린 시간<b>${mmss(state.clearSec)}</b></div>` +
+      `<div>⚡ 만든 ATP<b>${fmt(state.atpTotal)}</b></div>` +
+      `<div>🧪 분비 단백질<b>${state.secreted}개</b></div>` +
+      `<div>📝 퀴즈 보상<b>${quizRight} / ${QUIZ.length}문제</b></div>` +
+      `<div style="grid-column:1 / -1">🏭 소기관 레벨 · ${lvTxt}</div>`;
+    if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+    $('clearTitle').focus();
+  }
+  function checkGoal() {
+    if (state.cleared || state.atpTotal < CONFIG.goalAtp) return;
+    state.cleared = true; state.clearSec = state.playSec;
+    renderGoal(); openClear();
+  }
+  (function () {
+    const d = $('clear');
+    const close = () => { if (d.close) d.close(); else d.removeAttribute('open'); };
+    $('clearKeep').addEventListener('click', close);
+    $('clearQuiz').addEventListener('click', () => { close(); $('quiz').scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block:'start' }); });
+    $('clearAgain').addEventListener('click', () => { location.reload(); });
+    d.addEventListener('click', e => { if (e.target === d) close(); });
+    d.addEventListener('close', () => { const b = $('lightBtn'); if (b) b.focus({ preventScroll:true }); });
+  })();
+  renderGoal();
+  // 테스트·점검용으로 내부 상태를 바깥에 보여 줘요 (게임 진행에는 영향 없음)
+  window.__game = {
+    state, CONFIG, ORG, STEPS, lineLv, sugarPerClick, sugarCapacity, cost, upgrade, checkGoal, renderGoal,
+    mission: typeof mission !== 'undefined' ? mission : null,
+    MISSIONS: typeof MISSIONS !== 'undefined' ? MISSIONS : null,
+    startMission: typeof startMission === 'function' ? startMission : null
+  };
+
+
+  // ===== 학습 안내 (시작 화면) =====
+  (function () {
+    const d = $('intro');
+    const open = () => { if (d.open) return; if (d.showModal) d.showModal(); else d.setAttribute('open', ''); d.scrollTop = 0; $('introTitle').focus(); };
+    const close = () => { if (d.close) d.close(); else d.removeAttribute('open'); };
+    $('introStart').addEventListener('click', close);
+    $('guideBtn').addEventListener('click', open);
+    d.addEventListener('click', e => { if (e.target === d) close(); });
+    d.addEventListener('close', () => { state.started = true; const b = $('lightBtn'); if (b) b.focus({ preventScroll:true }); });
+    open();
+  })();
+</script>
+</body>
+</html>
